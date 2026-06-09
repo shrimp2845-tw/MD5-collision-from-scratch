@@ -1,0 +1,9 @@
+.idea/
+.venv/
+__pycache__/
+__pycache__
+.env
+.env/
+*.pyc
+temp_test*
+digest.txt
