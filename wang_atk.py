@@ -19,7 +19,6 @@ from numba import njit
 0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1, 0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
 '''
 
-
 def get_mask(list0, list1):
     mask0, mask1 = np.uint32(0), np.uint32(0)
     for i in list0:
@@ -43,16 +42,13 @@ def phi1(x, y, z):
 def phase1(m):
     # initialize
     m0 = m
-    q = np.zeros(64, dtype = np.uint32)
     a, b, c, d = np.uint32(0x67452301), np.uint32(0xefcdab89), np.uint32(0x98badcfe), np.uint32(0x10325476)
 
     # step 1
-    q[0] = b + left_rotate((a + phi1(b, c, d) + m0[0] + np.uint32(0xd76aa478)), np.uint32(7))
-    a = q[0]
+    a = b + left_rotate((a + phi1(b, c, d) + m0[0] + np.uint32(0xd76aa478)), np.uint32(7))
 
     # step 2
-    q[1] = a + left_rotate((d + phi1(a, b, c) + m0[1] + np.uint32(0xe8c7b756)), np.uint32(12))
-    d = q[1]
+    d = a + left_rotate((d + phi1(a, b, c) + m0[1] + np.uint32(0xe8c7b756)), np.uint32(12))
 
     # step 3
     temp = d + left_rotate((c + phi1(d, a, b) + m0[2] + np.uint32(0x242070db)), np.uint32(17))
