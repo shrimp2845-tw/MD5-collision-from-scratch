@@ -1,4 +1,3 @@
-
 import numpy as np
 from numba import njit
 
@@ -27,6 +26,10 @@ def get_mask(lm):
 MZ3, MO3 = get_mask([7, 12, 20]), get_mask([])
 MZ4, MO4, MF4 = get_mask([7, 24]), get_mask([12, 20, 32]), get_mask([8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23])
 MZ5, MO5 = get_mask([1, 2, 3, 4, 6, 8, 9, 13, 27, 29, 30, 21, 32]), get_mask([5, 7, 10, 11, 12, 17, 18, 19, 20, 28, 22, 31])
+MZ6, MO6, MF6 = get_mask([3, 6, 8, 9, 10, 15, 24, 28, 32]), get_mask([1, 7, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21, 22, 23, 26]), get_mask([2, 4, 5, 25, 27, 29, 30, 31])
+MZ7, MO7 = get_mask([1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 17, 27, 28, 29, 30, 31, 32]), get_mask([6, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25, 26])
+MZ8, MO8 = get_mask([1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 19, 20, 26, 27, 28, 29, 30, 31, 32]), get_mask([7, 9, 17, 21, 24, 25])
+MZ9, MO9, MF9 = get_mask([2, 7, 8, 16, 17, 18, 19, 20, 27]), get_mask([1, 3, 4, 5, 6, 9, 10, 11, 12, 14, 21, 25, 26, 28, 29, 30, 31, 32]), get_mask([13])
 
 @njit('uint32(uint32, uint32)')
 def left_rotate(x, n):
@@ -43,12 +46,12 @@ def phi1(x, y, z):
 @njit('void(uint32[:], uint32[:])')
 def phase1(m, q):
     """
-    first 16 round of the attack, using single message modification
-    technic to modify original message to satisfy
+    using single message modification technic to modify original
+    message to satisfy sufficient conditions in first 16 steps
 
     barely using loops, conditional expressions and arrays for better performance
 
-    need at around 500k try/sec
+    need around 500k try/sec
 
     m: original message
     q: buffer to store output of every step for future use of multi message modification
@@ -87,6 +90,26 @@ def phase1(m, q):
 
     # step 6
     temp = a + left_rotate((d + phi1(a, b, c) + m5 + np.uint32(0x4787c62a)), np.uint32(12))
+    d = (temp & ~MF6) | (a & MF6)
+    d = (d | MO6) & ~MZ6
+    m5 = right_rotate((d - temp), np.uint32(12)) + m5
+    q[5] = d
+
+    # step 7
+    temp = d + left_rotate((c + phi1(d, a, b) + m6 + np.uint32(0xa8304613)), np.uint32(17))
+    c = (temp | MO7) & ~MZ7
+    m6 = right_rotate((c - temp), np.uint32(17)) + m6
+    q[6] = b
+
+    # step 8
+    temp = c + left_rotate((b + phi1(c, d, a) + m7 + np.uint32(0xfd469501)), np.uint32(22))
+    b = (temp | MO8) & ~MZ8
+    m7 = right_rotate((b - temp), np.uint32(22)) + m7
+    q[6] = b
+
+    # step 9
+
+
 
 def main():
     pass
