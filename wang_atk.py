@@ -1,4 +1,3 @@
-# This project is very hard-coded due to optimizing and handling complications in differential
 
 import numpy as np
 from numba import njit
@@ -27,6 +26,7 @@ def get_mask(lm):
     
 MZ3, MO3 = get_mask([7, 12, 20]), get_mask([])
 MZ4, MO4, MF4 = get_mask([7, 24]), get_mask([12, 20, 32]), get_mask([8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23])
+MZ5, MO5 = get_mask([1, 2, 3, 4, 6, 8, 9, 13, 27, 29, 30, 21, 32]), get_mask([5, 7, 10, 11, 12, 17, 18, 19, 20, 28, 22, 31])
 
 @njit('uint32(uint32, uint32)')
 def left_rotate(x, n):
@@ -40,14 +40,21 @@ def right_rotate(x, n):
 def phi1(x, y, z):
     return (x & y) | (~x & z)
 
-@njit('uint32[:](uint32[:])')
-def phase1(m):
+@njit('void(uint32[:], uint32[:])')
+def phase1(m, q):
     """
     first 16 round of the attack, using single message modification
-    technic to modify original message to satisfy 
+    technic to modify original message to satisfy
+
+    barely using loops, conditional expressions and arrays for better performance
+
+    need at around 500k try/sec
+
+    m: original message
+    q: buffer to store output of every step for future use of multi message modification
     """
+
     # initialize
-    q = np.zeros(np.uint32(64), '4u')
     m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15 = m
     a, b, c, d = np.uint32(0x67452301), np.uint32(0xefcdab89), np.uint32(0x98badcfe), np.uint32(0x10325476)
     
@@ -69,11 +76,17 @@ def phase1(m):
     temp = c + left_rotate((b + phi1(c, d, a) + m3 + np.uint32(0xc1bdceee)), np.uint32(22))
     b = (temp & ~MF4) | (c & MF4)
     b = (b | MO4) & ~MZ4
-    m3 = right_rotate((b - temp), np.uint(22)) + m3
+    m3 = right_rotate((b - temp), np.uint32(22)) + m3
     q[3] = b
     
     # step 5
-    
+    temp = b + left_rotate((a + phi1(b, c, d) + m4 + np.uint32(0xf57c0faf)), np.uint32(7))
+    a = (temp | MO5) & ~MZ5
+    m4 = right_rotate((a - temp), np.uint32(7)) + m4
+    q[4] = a
+
+    # step 6
+    temp = a + left_rotate((d + phi1(a, b, c) + m5 + np.uint32(0x4787c62a)), np.uint32(12))
 
 def main():
     pass
