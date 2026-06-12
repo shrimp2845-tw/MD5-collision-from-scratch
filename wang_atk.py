@@ -31,6 +31,8 @@ MZ7, MO7 = get_mask([1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 17, 27, 28, 29, 30, 31, 32]
 MZ8, MO8 = get_mask([1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 19, 20, 26, 27, 28, 29, 30, 31, 32]), get_mask([7, 9, 17, 21, 24, 25])
 MZ9, MO9, MF9 = get_mask([2, 7, 8, 16, 17, 18, 19, 20, 27]), get_mask([1, 3, 4, 5, 6, 9, 10, 11, 12, 14, 21, 25, 26, 28, 29, 30, 31, 32]), get_mask([13])
 MZ10, MO10 = get_mask([1, 2, 8, 9, 14, 24, 32]), get_mask([7, 13, 16, 17, 18, 19, 20, 21, 31])
+MZ11, MO11, MF11 = get_mask([1, 9, 13, 14, 18, 19, 20, 31, 32]), get_mask([2, 7, 8, 17, 16]), get_mask([15])
+MZ12, MO12, MF12 = get_mask([8, 14, 15, 16, 17, 18, 19, 31, 32]), get_mask([9, 13, 20]), get_mask([25, 26])
 
 @njit('uint32(uint32, uint32)')
 def left_rotate(x, n):
@@ -52,7 +54,7 @@ def phase1(m, q):
 
     barely using loops, conditional expressions and arrays for better performance
 
-    need around 500k try/sec
+    need around 2m try/sec
 
     m: original message
     q: buffer to store output of every step for future use of multi message modification
@@ -120,7 +122,21 @@ def phase1(m, q):
     d = (temp | MO10) & ~MZ10
     m9 = right_rotate((d - temp), np.uint32(12)) + m9
     q[9] = d
-
+    
+    # step 11
+    temp = d + left_rotate((c + phi1(d, a, b) + m10 + np.uint32(0xffff5bb1)), np.uint32(17))
+    c = (temp & ~MF11) | (d & MF11)
+    c = (c | MO11) & ~MZ11
+    m10 = right_rotate((c - temp), np.uint32(17)) + m10
+    q[10] = c
+    
+    # step 12
+    temp = c + left_rotate((b + phi1(c, d, a) + m11 + np.uint32(0x895cd7be)), np.uint32(22))
+    b = (temp & ~MF12) | (c & MF12)
+    b = (b | MO12) & ~MZ12
+    m11 = right_rotate((b - temp), np.uint32(22)) + m11
+    q[11] = b
+    
 def main():
     pass
 
