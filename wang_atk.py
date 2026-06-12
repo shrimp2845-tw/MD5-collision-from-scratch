@@ -30,6 +30,7 @@ MZ6, MO6, MF6 = get_mask([3, 6, 8, 9, 10, 15, 24, 28, 32]), get_mask([1, 7, 11, 
 MZ7, MO7 = get_mask([1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 17, 27, 28, 29, 30, 31, 32]), get_mask([6, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25, 26])
 MZ8, MO8 = get_mask([1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 19, 20, 26, 27, 28, 29, 30, 31, 32]), get_mask([7, 9, 17, 21, 24, 25])
 MZ9, MO9, MF9 = get_mask([2, 7, 8, 16, 17, 18, 19, 20, 27]), get_mask([1, 3, 4, 5, 6, 9, 10, 11, 12, 14, 21, 25, 26, 28, 29, 30, 31, 32]), get_mask([13])
+MZ10, MO10 = get_mask([1, 2, 8, 9, 14, 24, 32]), get_mask([7, 13, 16, 17, 18, 19, 20, 21, 31])
 
 @njit('uint32(uint32, uint32)')
 def left_rotate(x, n):
@@ -99,17 +100,26 @@ def phase1(m, q):
     temp = d + left_rotate((c + phi1(d, a, b) + m6 + np.uint32(0xa8304613)), np.uint32(17))
     c = (temp | MO7) & ~MZ7
     m6 = right_rotate((c - temp), np.uint32(17)) + m6
-    q[6] = b
+    q[6] = c
 
     # step 8
     temp = c + left_rotate((b + phi1(c, d, a) + m7 + np.uint32(0xfd469501)), np.uint32(22))
     b = (temp | MO8) & ~MZ8
     m7 = right_rotate((b - temp), np.uint32(22)) + m7
-    q[6] = b
+    q[7] = b
 
     # step 9
-
-
+    temp = b + left_rotate((a + phi1(b, c, d) + m8 + np.uint32(0x698098d8)), np.uint32(7))
+    a = (temp & ~MF9) | (b & MF9)
+    a = (a | MO9) & ~MZ9
+    m8 = right_rotate((a - temp), np.uint32(7)) + m8
+    q[8] = a
+    
+    # step 10
+    temp = a + left_rotate((d + phi1(a, b, c) + m9 + np.uint32(0x8b44f7af)), np.uint32(12))
+    d = (temp | MO10) & ~MZ10
+    m9 = right_rotate((d - temp), np.uint32(12)) + m9
+    q[9] = d
 
 def main():
     pass
