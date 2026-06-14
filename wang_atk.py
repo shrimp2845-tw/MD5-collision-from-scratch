@@ -17,8 +17,6 @@ from numba import njit
 0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1, 0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
 '''
 
-A, B, C, D = np.uint32(0x67452301), np.uint32(0xefcdab89), np.uint32(0x98badcfe), np.uint32(0x10325476)
-
 def get_mask(lm):
     mask = np.uint32(0)
     for i in lm:
@@ -52,8 +50,8 @@ def right_rotate(x, n):
 def phi1(x, y, z):
     return (x & y) | (~x & z)
 
-@njit('void(uint32[:], uint32[:], uint32, uint32, uint32, uint32)')
-def phase1(m, q, a, b, c, d):
+@njit('void(uint32[:], uint32[:])')
+def phase1(m, q):
     """
     using single message modification technic to modify original
     message to satisfy sufficient conditions in first 16 steps
@@ -67,6 +65,7 @@ def phase1(m, q, a, b, c, d):
     """
 
     # initialize
+    a, b, c, d = np.uint32(0x67452301), np.uint32(0xefcdab89), np.uint32(0x98badcfe), np.uint32(0x10325476)
     m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15 = m
     
     # step 1
