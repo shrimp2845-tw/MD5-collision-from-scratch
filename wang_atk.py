@@ -17,6 +17,8 @@ from numba import njit
 0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1, 0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
 '''
 
+A, B, C, D = np.uint32(0x67452301), np.uint32(0xefcdab89), np.uint32(0x98badcfe), np.uint32(0x10325476)
+
 def get_mask(lm):
     mask = np.uint32(0)
     for i in lm:
@@ -33,6 +35,10 @@ MZ9, MO9, MF9 = get_mask([2, 7, 8, 16, 17, 18, 19, 20, 27]), get_mask([1, 3, 4, 
 MZ10, MO10 = get_mask([1, 2, 8, 9, 14, 24, 32]), get_mask([7, 13, 16, 17, 18, 19, 20, 21, 31])
 MZ11, MO11, MF11 = get_mask([1, 9, 13, 14, 18, 19, 20, 31, 32]), get_mask([2, 7, 8, 17, 16]), get_mask([15])
 MZ12, MO12, MF12 = get_mask([8, 14, 15, 16, 17, 18, 19, 31, 32]), get_mask([9, 13, 20]), get_mask([25, 26])
+MZ13, MO13 = get_mask([8, 9, 26, 32]), get_mask([4, 14, 15, 16, 17, 18, 20, 25, 31, 19])
+MZ14, MO14 = get_mask([4, 26, 32]), get_mask([16, 25, 30])
+MZ15, MO15 = get_mask([19, 25, 30, 32]), get_mask([4, 8, 9, 14, 15, 16, 17, 18, 20])
+MZ16, MO16 = get_mask([32]), get_mask([30])
 
 @njit('uint32(uint32, uint32)')
 def left_rotate(x, n):
@@ -46,8 +52,8 @@ def right_rotate(x, n):
 def phi1(x, y, z):
     return (x & y) | (~x & z)
 
-@njit('void(uint32[:], uint32[:])')
-def phase1(m, q):
+@njit('void(uint32[:], uint32[:], uint32, uint32, uint32, uint32)')
+def phase1(m, q, a, b, c, d):
     """
     using single message modification technic to modify original
     message to satisfy sufficient conditions in first 16 steps
@@ -62,7 +68,6 @@ def phase1(m, q):
 
     # initialize
     m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15 = m
-    a, b, c, d = np.uint32(0x67452301), np.uint32(0xefcdab89), np.uint32(0x98badcfe), np.uint32(0x10325476)
     
     # step 1
     a = b + left_rotate((a + phi1(b, c, d) + m0 + np.uint32(0xd76aa478)), np.uint32(7))
@@ -136,7 +141,33 @@ def phase1(m, q):
     b = (b | MO12) & ~MZ12
     m11 = right_rotate((b - temp), np.uint32(22)) + m11
     q[11] = b
-    
+
+    # step 13
+    temp = b + left_rotate((a + phi1(b, c, d) + m12 + np.uint32(0x6b901122)), np.uint32(7))
+    a = (temp | MO13) & ~MZ13
+    m12 = right_rotate((a - temp), np.uint32(7)) + m12
+    q[12] = a
+
+    # step 14
+    temp = a + left_rotate((d + phi1(a, b, c) + m13 + np.uint32(0xfd987193)), np.uint32(12))
+    d = (temp | MO14) & ~MZ14
+    m13 = right_rotate((d - temp), np.uint32(12)) + m13
+    q[13] = d
+
+    # step 15
+    temp = d + left_rotate((c + phi1(d, a, b) + m14 + np.uint32(0xa679438e)), np.uint32(17))
+    c = (temp | MO15) & ~MZ15
+    m14 = right_rotate((c - temp), np.uint32(17)) + m14
+    q[14] = c
+
+    # step 16
+    temp = c + left_rotate((b + phi1(c, d, a) + m15 + np.uint32(0x49b40821)), np.uint32(22))
+    b = (b | MO16) & ~MZ16
+    m15 = right_rotate((b - temp), np.uint32(22)) + m15
+    q[15] = b
+
+    m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8], m[9], m[10], m[11], m[12], m[13], m[14], m[15] = m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15
+
 def main():
     pass
 
