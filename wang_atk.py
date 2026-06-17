@@ -44,7 +44,7 @@ def left_rotate(x, n):
 
 @njit('uint32(uint32, uint32)')
 def right_rotate(x, n):
-    return (x >> n) | (x << (np.uint(32) - n))
+    return (x >> n) | (x << (np.uint32(32) - n))
 
 @njit('uint32(uint32, uint32, uint32)')
 def phi1(x, y, z):
@@ -161,7 +161,7 @@ def phase1(m, q):
 
     # step 16
     temp = c + left_rotate((b + phi1(c, d, a) + m15 + np.uint32(0x49b40821)), np.uint32(22))
-    b = (b | MO16) & ~MZ16
+    b = (temp | MO16) & ~MZ16
     m15 = right_rotate((b - temp), np.uint32(22)) + m15
     q[15] = b
 
