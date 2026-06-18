@@ -20,31 +20,31 @@ from numba import njit
 def get_mask(lm):
     mask = np.uint32(0)
     for i in lm:
-        mask |= (np.uint32(1) << np.uint32(32 - i))
+        mask |= (np.uint32(1) << np.uint32(i - 1))
     return mask
     
 MZ3, MO3 = get_mask([7, 12, 20]), get_mask([])
-MZ4, MO4, MF4 = get_mask([7, 24]), get_mask([12, 20, 32]), get_mask([8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23])
-MZ5, MO5 = get_mask([1, 2, 3, 4, 6, 8, 9, 13, 27, 29, 30, 21, 32]), get_mask([5, 7, 10, 11, 12, 17, 18, 19, 20, 28, 22, 31])
+MZ4, MO4, MF4 = get_mask([7, 24]), get_mask([5, 6, 12, 20, 32]), get_mask([8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23])
+MZ5, MO5 = get_mask([5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 24, 26, 27, 29, 30, 31]), get_mask([1, 3, 6, 23, 28, 32])
 MZ6, MO6, MF6 = get_mask([3, 6, 8, 9, 10, 15, 24, 28, 32]), get_mask([1, 7, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21, 22, 23, 26]), get_mask([2, 4, 5, 25, 27, 29, 30, 31])
 MZ7, MO7 = get_mask([1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 17, 27, 28, 29, 30, 31, 32]), get_mask([6, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25, 26])
-MZ8, MO8 = get_mask([1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 19, 20, 26, 27, 28, 29, 30, 31, 32]), get_mask([7, 9, 17, 21, 24, 25])
+MZ8, MO8 = get_mask([1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 19, 20, 26, 27, 28, 29, 30, 31, 32]), get_mask([7, 9, 11, 17, 21, 24, 25])
 MZ9, MO9, MF9 = get_mask([2, 7, 8, 16, 17, 18, 19, 20, 27]), get_mask([1, 3, 4, 5, 6, 9, 10, 11, 12, 14, 21, 25, 26, 28, 29, 30, 31, 32]), get_mask([13])
-MZ10, MO10 = get_mask([1, 2, 8, 9, 14, 24, 32]), get_mask([7, 13, 16, 17, 18, 19, 20, 21, 31])
-MZ11, MO11, MF11 = get_mask([1, 9, 13, 14, 18, 19, 20, 31, 32]), get_mask([2, 7, 8, 17, 16]), get_mask([15])
-MZ12, MO12, MF12 = get_mask([8, 14, 15, 16, 17, 18, 19, 31, 32]), get_mask([9, 13, 20]), get_mask([25, 26])
-MZ13, MO13 = get_mask([8, 9, 26, 32]), get_mask([4, 14, 15, 16, 17, 18, 20, 25, 31, 19])
-MZ14, MO14 = get_mask([4, 26, 32]), get_mask([16, 25, 30])
-MZ15, MO15 = get_mask([19, 25, 30, 32]), get_mask([4, 8, 9, 14, 15, 16, 17, 18, 20])
-MZ16, MO16 = get_mask([32]), get_mask([30])
+MZ10, MO10 = get_mask([1, 2, 8, 9, 14, 24, 32]), get_mask([7, 13, 16, 17, 18, 19, 20, 21, 29, 30, 31])
+MZ11, MO11, MF11 = get_mask([1, 9, 13, 14, 18, 19, 20, 29, 31, 32]), get_mask([2, 7, 8, 16, 17, 30]), get_mask([15])
+MZ12, MO12, MF12 = get_mask([8, 14, 15, 16, 17, 18, 19, 30, 31, 32]), get_mask([9, 13, 20]), get_mask([25, 26])
+MZ13, MO13 = get_mask([8, 9, 26, 32]), get_mask([4, 14, 15, 16, 17, 18, 19, 20, 25, 31])
+MZ14, MO14 = get_mask([19, 25, 26, 30, 31, 32]), get_mask([4, 8, 9, 14, 15, 16, 17, 18, 20])
+MZ15, MO15 = get_mask([4, 15, 26, 32]), get_mask([16, 25, 30, 31])
+MZ16, MO16 = get_mask([31, 32]), get_mask([30])
 
 @njit('uint32(uint32, uint32)')
 def left_rotate(x, n):
-    return (x << n) | (x >> (np.uint32(32) - n))
+    return np.uint32((x << n) | (x >> (np.uint32(32) - n)))
 
 @njit('uint32(uint32, uint32)')
 def right_rotate(x, n):
-    return (x >> n) | (x << (np.uint32(32) - n))
+    return np.uint32((x >> n) | (x << (np.uint32(32) - n)))
 
 @njit('uint32(uint32, uint32, uint32)')
 def phi1(x, y, z):
@@ -78,95 +78,109 @@ def phase1(m, q):
     
     #step 3
     temp = d + left_rotate((c + phi1(d, a, b) + m2 + np.uint32(0x242070db)), np.uint32(17))
-    c = (temp | MO3) & ~MZ3
-    m2 = right_rotate((c - temp), np.uint32(17)) + m2
+    target = (temp | MO3) & ~MZ3
+    m2 = right_rotate((target - d), np.uint32(17)) - c - phi1(d, a, b) - np.uint32(0x242070db)
+    c = target
     q[2] = c
     
     # step 4
     temp = c + left_rotate((b + phi1(c, d, a) + m3 + np.uint32(0xc1bdceee)), np.uint32(22))
-    b = (temp & ~MF4) | (c & MF4)
-    b = (b | MO4) & ~MZ4
-    m3 = right_rotate((b - temp), np.uint32(22)) + m3
+    target = (temp & ~MF4) | (c & MF4)
+    target = (target | MO4) & ~MZ4
+    m3 = right_rotate((target - c), np.uint32(22)) - b - phi1(c, d, a) - np.uint32(0xc1bdceee)
+    b = target
     q[3] = b
     
     # step 5
     temp = b + left_rotate((a + phi1(b, c, d) + m4 + np.uint32(0xf57c0faf)), np.uint32(7))
-    a = (temp | MO5) & ~MZ5
-    m4 = right_rotate((a - temp), np.uint32(7)) + m4
+    target = (temp | MO5) & ~MZ5
+    m4 = right_rotate((target - b), np.uint32(7)) - a - phi1(b, c, d) - np.uint32(0xf57c0faf)
+    a = target
     q[4] = a
 
     # step 6
     temp = a + left_rotate((d + phi1(a, b, c) + m5 + np.uint32(0x4787c62a)), np.uint32(12))
-    d = (temp & ~MF6) | (a & MF6)
-    d = (d | MO6) & ~MZ6
-    m5 = right_rotate((d - temp), np.uint32(12)) + m5
+    target = (temp & ~MF6) | (a & MF6)
+    target = (target | MO6) & ~MZ6
+    m5 = right_rotate((target - a), np.uint32(12)) - d - phi1(a, b, c) - np.uint32(0x4787c62a)
+    d = target
     q[5] = d
 
     # step 7
     temp = d + left_rotate((c + phi1(d, a, b) + m6 + np.uint32(0xa8304613)), np.uint32(17))
-    c = (temp | MO7) & ~MZ7
-    m6 = right_rotate((c - temp), np.uint32(17)) + m6
+    target = (temp | MO7) & ~MZ7
+    m6 = right_rotate((target - d), np.uint32(17)) - c - phi1(d, a, b) - np.uint32(0xa8304613)
+    c = target
     q[6] = c
 
     # step 8
     temp = c + left_rotate((b + phi1(c, d, a) + m7 + np.uint32(0xfd469501)), np.uint32(22))
-    b = (temp | MO8) & ~MZ8
-    m7 = right_rotate((b - temp), np.uint32(22)) + m7
+    target = (temp | MO8) & ~MZ8
+    m7 = right_rotate((target - c), np.uint32(22)) - b - phi1(c, d, a) - np.uint32(0xfd469501)
+    b = target
     q[7] = b
 
     # step 9
     temp = b + left_rotate((a + phi1(b, c, d) + m8 + np.uint32(0x698098d8)), np.uint32(7))
-    a = (temp & ~MF9) | (b & MF9)
-    a = (a | MO9) & ~MZ9
-    m8 = right_rotate((a - temp), np.uint32(7)) + m8
+    target = (temp & ~MF9) | (b & MF9)
+    target = (target | MO9) & ~MZ9
+    m8 = right_rotate((target - b), np.uint32(7)) - a - phi1(b, c, d) - np.uint32(0x698098d8)
+    a = target
     q[8] = a
     
     # step 10
     temp = a + left_rotate((d + phi1(a, b, c) + m9 + np.uint32(0x8b44f7af)), np.uint32(12))
-    d = (temp | MO10) & ~MZ10
-    m9 = right_rotate((d - temp), np.uint32(12)) + m9
+    target = (temp | MO10) & ~MZ10
+    m9 = right_rotate((target - a), np.uint32(12)) - d - phi1(a, b, c) - np.uint32(0x8b44f7af)
+    d = target
     q[9] = d
     
     # step 11
     temp = d + left_rotate((c + phi1(d, a, b) + m10 + np.uint32(0xffff5bb1)), np.uint32(17))
-    c = (temp & ~MF11) | (d & MF11)
-    c = (c | MO11) & ~MZ11
-    m10 = right_rotate((c - temp), np.uint32(17)) + m10
+    target = (temp & ~MF11) | (d & MF11)
+    target = (target | MO11) & ~MZ11
+    m10 = right_rotate((target - d), np.uint32(17)) - c - phi1(d, a, b) - np.uint32(0xffff5bb1)
+    c = target
     q[10] = c
     
     # step 12
     temp = c + left_rotate((b + phi1(c, d, a) + m11 + np.uint32(0x895cd7be)), np.uint32(22))
-    b = (temp & ~MF12) | (c & MF12)
-    b = (b | MO12) & ~MZ12
-    m11 = right_rotate((b - temp), np.uint32(22)) + m11
+    target = (temp & ~MF12) | (c & MF12)
+    target = (target | MO12) & ~MZ12
+    m11 = right_rotate((target - c), np.uint32(22)) - b - phi1(c, d, a) - np.uint32(0x895cd7be)
+    b = target
     q[11] = b
 
     # step 13
     temp = b + left_rotate((a + phi1(b, c, d) + m12 + np.uint32(0x6b901122)), np.uint32(7))
-    a = (temp | MO13) & ~MZ13
-    m12 = right_rotate((a - temp), np.uint32(7)) + m12
+    target = (temp | MO13) & ~MZ13
+    m12 = right_rotate((target - b), np.uint32(7)) - a - phi1(b, c, d) - np.uint32(0x6b901122)
+    a = target
     q[12] = a
 
     # step 14
     temp = a + left_rotate((d + phi1(a, b, c) + m13 + np.uint32(0xfd987193)), np.uint32(12))
-    d = (temp | MO14) & ~MZ14
-    m13 = right_rotate((d - temp), np.uint32(12)) + m13
+    target = (temp | MO14) & ~MZ14
+    m13 = right_rotate((target - a), np.uint32(12)) - d - phi1(a, b, c) - np.uint32(0xfd987193)
+    d = target
     q[13] = d
 
     # step 15
     temp = d + left_rotate((c + phi1(d, a, b) + m14 + np.uint32(0xa679438e)), np.uint32(17))
-    c = (temp | MO15) & ~MZ15
-    m14 = right_rotate((c - temp), np.uint32(17)) + m14
+    target = (temp | MO15) & ~MZ15
+    m14 = right_rotate((target - d), np.uint32(17)) - c - phi1(d, a, b) - np.uint32(0xa679438e)
+    c = target
     q[14] = c
 
     # step 16
     temp = c + left_rotate((b + phi1(c, d, a) + m15 + np.uint32(0x49b40821)), np.uint32(22))
-    b = (temp | MO16) & ~MZ16
-    m15 = right_rotate((b - temp), np.uint32(22)) + m15
+    target = (temp | MO16) & ~MZ16
+    m15 = right_rotate((target - c), np.uint32(22)) - b - phi1(c, d, a) - np.uint32(0x49b40821)
+    b = target
     q[15] = b
 
     m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8], m[9], m[10], m[11], m[12], m[13], m[14], m[15] = m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15
-
+    
 def main():
     pass
 
