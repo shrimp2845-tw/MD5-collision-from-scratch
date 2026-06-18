@@ -36,7 +36,7 @@ MZ12, MO12, MF12 = get_mask([8, 14, 15, 16, 17, 18, 19, 30, 31, 32]), get_mask([
 MZ13, MO13 = get_mask([8, 9, 26, 32]), get_mask([4, 14, 15, 16, 17, 18, 19, 20, 25, 31])
 MZ14, MO14 = get_mask([19, 25, 26, 30, 31, 32]), get_mask([4, 8, 9, 14, 15, 16, 17, 18, 20])
 MZ15, MO15 = get_mask([4, 15, 26, 32]), get_mask([16, 25, 30, 31])
-MZ16, MO16 = get_mask([31, 32]), get_mask([30])
+MZ16, MO16, MFN16 = get_mask([31, 32]), get_mask([30]), get_mask([22])
 
 @njit('uint32(uint32, uint32)')
 def left_rotate(x, n):
@@ -174,10 +174,12 @@ def phase1(m, q):
 
     # step 16
     temp = c + left_rotate((b + phi1(c, d, a) + m15 + np.uint32(0x49b40821)), np.uint32(22))
-    target = (temp | MO16) & ~MZ16
+    target = (temp & ~MFN16) | ((~c) & MFN16)
+    target = (target | MO16) & ~MZ16
     m15 = right_rotate((target - c), np.uint32(22)) - b - phi1(c, d, a) - np.uint32(0x49b40821)
     b = target
     q[15] = b
+
 
     m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8], m[9], m[10], m[11], m[12], m[13], m[14], m[15] = m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15
     
