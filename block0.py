@@ -25,7 +25,7 @@ def get_mask(lm):
     
 MZ3, MO3 = get_mask([7, 12, 20]), get_mask([])
 MZ4, MO4, MF4 = get_mask([7, 24]), get_mask([5, 6, 12, 20, 32]), get_mask([8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23])
-MZ5, MO5 = get_mask([5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 24, 26, 27, 29, 30, 31]), get_mask([1, 3, 6, 23, 28, 32])
+MZ5, MO5 = get_mask([5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 26, 27, 29, 30, 31]), get_mask([1, 3, 6, 23, 28, 32])
 MZ6, MO6, MF6 = get_mask([3, 6, 8, 9, 10, 15, 24, 28, 32]), get_mask([1, 7, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21, 22, 23, 26]), get_mask([2, 4, 5, 25, 27, 29, 30, 31])
 MZ7, MO7 = get_mask([1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 17, 27, 28, 29, 30, 31, 32]), get_mask([6, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25, 26])
 MZ8, MO8 = get_mask([1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 19, 20, 26, 27, 28, 29, 30, 31, 32]), get_mask([7, 9, 11, 17, 21, 24, 25])
@@ -35,7 +35,7 @@ MZ11, MO11, MF11 = get_mask([1, 9, 13, 14, 18, 19, 20, 29, 31, 32]), get_mask([2
 MZ12, MO12, MF12 = get_mask([8, 14, 15, 16, 17, 18, 19, 30, 31, 32]), get_mask([9, 13, 20]), get_mask([25, 26])
 MZ13, MO13 = get_mask([8, 9, 26, 32]), get_mask([4, 14, 15, 16, 17, 18, 19, 20, 25, 31])
 MZ14, MO14 = get_mask([19, 25, 26, 30, 31, 32]), get_mask([4, 8, 9, 14, 15, 16, 17, 18, 20])
-MZ15, MO15 = get_mask([4, 15, 26, 32]), get_mask([16, 25, 30, 31])
+MZ15, MO15 = get_mask([4, 9, 15, 21, 23, 26, 32]), get_mask([16, 25, 30, 31])
 MZ16, MO16, MFN16 = get_mask([31, 32]), get_mask([30]), get_mask([22])
 
 @njit('uint32(uint32, uint32)')
@@ -49,19 +49,37 @@ def right_rotate(x, n):
 @njit('uint32(uint32, uint32, uint32)')
 def phi1(x, y, z):
     return (x & y) | (~x & z)
-
-@njit('void(uint32[:], uint32[:])')
-def phase1(m, q):
+    
+@njit('uint32(uint32, uint32, uint32)')
+def phi2(x, y, z):
+    return (x & z) | (y & ~z)
+    
+@njit('void(uint32)')
+def rand32(state):
+    state ^= state << np.uint32(13)
+    state ^= state >> np.uint32(17)
+    state ^= state << np.uint32(5)
+    
+@njit('uint32[:](uint32[:], uint32[:], uint32)')
+def block0(m, q, debug1):
     """
-    using single message modification technic to modify original
+    1.using single message modification technic to modify original
     message to satisfy sufficient conditions in first 16 steps
-
+    
+    2.using multi message modification technic to modify original
+    message to satisfy sufficient conditions in 17 ~ 20 steps
+    
+    3.compute remain steps and pray, if any condition in table 4 not
+    satisfied go back to 2., posibility to pass is 1/2³⁵ while using 
+    real sufficient condition from Liang et al.
+    
     barely using loops, conditional expressions and arrays for better performance
 
     need around 2m try/sec
-
+    
     m: original message
     q: buffer to store output of every step for future use of multi message modification
+    debug1: whether to just stop after single message modification
     """
 
     # initialize
@@ -180,9 +198,23 @@ def phase1(m, q):
     b = target
     q[15] = b
 
-
     m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8], m[9], m[10], m[11], m[12], m[13], m[14], m[15] = m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15
     
+    if debug1:
+        return m
+         
+    # initialize (2, 3
+    seed = np.uint32(609799) + m0 # guess what this number stands for owo?
+    q0, q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12, q13, q14, q15 = q
+    
+    while True:
+        # previous attempt failed, restart from here
+        nm0, nm1, nm2, nm3, nm4, nm5, nm6, nm7, nm8, nm9, nm10, nm11, nm12, nm13, nm14, nm15 = m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15
+        nq0, nq1, nq2, nq3, nq4, nq5, nq6, nq7, nq8, nq9, nq10, nq11, nq12, nq13, nq14, nq15 = q0, q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12, q13, q14, q15
+        
+        # compute random a5 (todo)
+        return m
+                
 def main():
     pass
 

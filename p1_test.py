@@ -2,8 +2,8 @@ import warnings
 warnings.filterwarnings('ignore', category=RuntimeWarning)
 
 import numpy as np
-from wang_atk import (
-    phase1, left_rotate, phi1,
+from block0 import (
+    block0, left_rotate, phi1,
     MZ3, MO3, MZ4, MO4, MF4, MZ5, MO5, MZ6, MO6, MF6,
     MZ7, MO7, MZ8, MO8, MZ9, MO9, MF9, MZ10, MO10,
     MZ11, MO11, MF11, MZ12, MO12, MF12, MZ13, MO13,
@@ -30,7 +30,7 @@ MZ[13], MO[13] = MZ14, MO14
 MZ[14], MO[14] = MZ15, MO15
 MZ[15], MO[15] = MZ16, MO16
 
-def normal_phase1(m, q):
+def normal_block0(m, q):
     a, b, c, d = np.uint32(0x67452301), np.uint32(0xefcdab89), np.uint32(0x98badcfe), np.uint32(0x10325476)  
     a = b + left_rotate((a + phi1(b, c, d) + m[0] + np.uint32(0xd76aa478)), np.uint32(7)); q[0] = a
     d = a + left_rotate((d + phi1(a, b, c) + m[1] + np.uint32(0xe8c7b756)), np.uint32(12)); q[1] = d
@@ -95,7 +95,7 @@ def main():
     m_rand = np.random.randint(0, 4294967295, size=16, dtype=np.uint32)
     m0 = m_rand.copy()
     q_dummy = np.zeros(16, dtype=np.uint32)
-    phase1(m0, q_dummy)
+    block0(m0, q_dummy, np.uint32(1))
     delta_m0 = np.zeros(16, dtype=np.uint32)
     delta_m0[4]  = np.uint32(1) << np.uint32(31)  # 2^31
     delta_m0[11] = np.uint32(1) << np.uint32(15)  # 2^15
@@ -103,8 +103,8 @@ def main():
     m0_prime = m0 + delta_m0
     q = np.zeros(16, dtype=np.uint32)
     q_prime = np.zeros(16, dtype=np.uint32)
-    normal_phase1(m0, q)
-    normal_phase1(m0_prime, q_prime)
+    normal_block0(m0, q)
+    normal_block0(m0_prime, q_prime)
     print("=" * 70)
     print("state differential (xor & modular diff)")
     print("=" * 70)
