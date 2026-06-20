@@ -95,7 +95,7 @@ def main():
     m_rand = np.random.randint(0, 4294967295, size=16, dtype=np.uint32)
     m0 = m_rand.copy()
     q_dummy = np.zeros(16, dtype=np.uint32)
-    block0(m0, q_dummy, np.uint32(1))
+    block0(m0, q_dummy, np.uint32(1), np.uint32(0))
     delta_m0 = np.zeros(16, dtype=np.uint32)
     delta_m0[4]  = np.uint32(1) << np.uint32(31)  # 2^31
     delta_m0[11] = np.uint32(1) << np.uint32(15)  # 2^15

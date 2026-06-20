@@ -37,6 +37,8 @@ MZ13, MO13 = get_mask([8, 9, 26, 32]), get_mask([4, 14, 15, 16, 17, 18, 19, 20, 
 MZ14, MO14 = get_mask([19, 25, 26, 30, 31, 32]), get_mask([4, 8, 9, 14, 15, 16, 17, 18, 20])
 MZ15, MO15 = get_mask([4, 9, 15, 21, 23, 26, 32]), get_mask([16, 25, 30, 31])
 MZ16, MO16, MFN16 = get_mask([31, 32]), get_mask([30]), get_mask([22])
+MZ17, MO17, MF17 = get_mask([18]), get_mask([31]), get_mask([4, 16, 32])
+MZ18, MO18, MF18 = get_mask([]), get_mask([18]), get_mask([30, 32])
 
 @njit('uint32(uint32, uint32)')
 def left_rotate(x, n):
@@ -54,20 +56,22 @@ def phi1(x, y, z):
 def phi2(x, y, z):
     return (x & z) | (y & ~z)
     
-@njit('void(uint32)')
+@njit('uint32(uint32)')
 def rand32(state):
     state ^= state << np.uint32(13)
     state ^= state >> np.uint32(17)
     state ^= state << np.uint32(5)
+    return state
     
-@njit('uint32[:](uint32[:], uint32[:], uint32)')
-def block0(m, q, debug1):
+@njit('uint32[:](uint32[:], uint32[:], uint32, uint32)')
+def block0(m, q, debug1, debug2):
     """
     1.using single message modification technic to modify original
     message to satisfy sufficient conditions in first 16 steps
     
-    2.using multi message modification technic to modify original
-    message to satisfy sufficient conditions in 17 ~ 20 steps
+    2.using multi message modification technic and small search 
+    technic to modify original message to satisfy sufficient conditions in 
+    17 ~ 20 steps
     
     3.compute remain steps and pray, if any condition in table 4 not
     satisfied go back to 2., posibility to pass is 1/2³⁵ while using 
@@ -79,7 +83,7 @@ def block0(m, q, debug1):
     
     m: original message
     q: buffer to store output of every step for future use of multi message modification
-    debug1: whether to just stop after single message modification
+    debugs: throw in a debug flag and it will stop right there and return
     """
 
     # initialize
@@ -210,11 +214,27 @@ def block0(m, q, debug1):
     while True:
         # if previous attempt failed, restart from here
         nm0, nm1, nm2, nm3, nm4, nm5, nm6, nm7, nm8, nm9, nm10, nm11, nm12, nm13, nm14, nm15 = m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15
-        nq0, nq1, nq2, nq3, nq4, nq5, nq6, nq7, nq8, nq9, nq10, nq11, nq12, nq13, nq14, nq15 = q0, q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12, q13, q14, q15
+        a1, d1, c1, b1, a2, d2, c2, b2, a3, d3, c3, b3, a4, d4, c4, b4 = q0, q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12, q13, q14, q15
         
-        # compute random a5 (todo)
+        # compute random a5, we will make M0 to satisfy this random a5 later on
+        temp = rand32(seed)
+        seed = temp
+        temp = (temp & ~MF17) | (b4 & MF17)
+        a5 = (temp | MO17) & ~MZ17
+        
+        # step 18
+        temp = a5 + left_rotate(d4 + phi2(a5, b4, c4) + m6 + np.uint32(0xc040b340), np.uint32(9))        
+        d5 = (temp & ~MF18) | (a5 & MF18)
+        d5 = (d5 | MO18) & ~MZ18
+        
+        # cause 9, 21, 23th bits in c4 is 0, so if we change 9, 21, 23th bits in b4, it will change 18, 30, 32th bits in d5
+        b4 = b4 ^ right_rotate((temp ^ d5), np.uint32(9))
+        nm15 = right_rotate((b4 - c4), np.uint32(22)) - b3 - phi1(c4, d4, a4) - np.uint32(0x49b40821)
+        
+        # todo: step (d) in the paper
         return m
                 
+               
 def main():
     pass
 
