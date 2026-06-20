@@ -78,8 +78,6 @@ def block0(m, q, debug1, debug2):
     real sufficient condition from Liang et al.
     
     barely using loops, conditional expressions and arrays for better performance
-
-    need around 2m try/sec
     
     m: original message
     q: buffer to store output of every step for future use of multi message modification
@@ -233,8 +231,7 @@ def block0(m, q, debug1, debug2):
         
         # todo: step (d) in the paper
         return m
-                
-               
+                            
 def main():
     pass
 
