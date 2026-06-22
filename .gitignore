@@ -8,3 +8,4 @@ __pycache__
 temp_test*
 digest.txt
 utils/
+benchmark.py

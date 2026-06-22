@@ -2,35 +2,9 @@ import warnings
 warnings.filterwarnings('ignore', category=RuntimeWarning)
 
 import numpy as np
-from block0 import (
-    block0, left_rotate, phi1,
-    MZ3, MO3, MZ4, MO4, MF4, MZ5, MO5, MZ6, MO6, MF6,
-    MZ7, MO7, MZ8, MO8, MZ9, MO9, MF9, MZ10, MO10,
-    MZ11, MO11, MF11, MZ12, MO12, MF12, MZ13, MO13,
-    MZ14, MO14, MZ15, MO15, MZ16, MO16
-)
+from block0 import block0, left_rotate, phi1, phi2
 
-
-MZ = [np.uint32(0)] * 16
-MO = [np.uint32(0)] * 16
-MF = [np.uint32(0)] * 16
-
-MZ[2], MO[2] = MZ3, MO3
-MZ[3], MO[3], MF[3] = MZ4, MO4, MF4
-MZ[4], MO[4] = MZ5, MO5
-MZ[5], MO[5], MF[5] = MZ6, MO6, MF6
-MZ[6], MO[6] = MZ7, MO7
-MZ[7], MO[7] = MZ8, MO8
-MZ[8], MO[8], MF[8] = MZ9, MO9, MF9
-MZ[9], MO[9] = MZ10, MO10
-MZ[10], MO[10], MF[10] = MZ11, MO11, MF11
-MZ[11], MO[11], MF[11] = MZ12, MO12, MF12
-MZ[12], MO[12] = MZ13, MO13
-MZ[13], MO[13] = MZ14, MO14
-MZ[14], MO[14] = MZ15, MO15
-MZ[15], MO[15] = MZ16, MO16
-
-def normal_block0(m, q):
+def normal_block0_step20(m, q):
     a, b, c, d = np.uint32(0x67452301), np.uint32(0xefcdab89), np.uint32(0x98badcfe), np.uint32(0x10325476)  
     a = b + left_rotate((a + phi1(b, c, d) + m[0] + np.uint32(0xd76aa478)), np.uint32(7)); q[0] = a
     d = a + left_rotate((d + phi1(a, b, c) + m[1] + np.uint32(0xe8c7b756)), np.uint32(12)); q[1] = d
@@ -48,77 +22,67 @@ def normal_block0(m, q):
     d = a + left_rotate((d + phi1(a, b, c) + m[13] + np.uint32(0xfd987193)), np.uint32(12)); q[13] = d
     c = d + left_rotate((c + phi1(d, a, b) + m[14] + np.uint32(0xa679438e)), np.uint32(17)); q[14] = c
     b = c + left_rotate((b + phi1(c, d, a) + m[15] + np.uint32(0x49b40821)), np.uint32(22)); q[15] = b
+    a = b + left_rotate((a + phi2(b, c, d) + m[1] + np.uint32(0xf61e2562)), np.uint32(5)); q[16] = a
+    d = a + left_rotate((d + phi2(a, b, c) + m[6] + np.uint32(0xc040b340)), np.uint32(9)); q[17] = d
+    c = d + left_rotate((c + phi2(d, a, b) + m[11] + np.uint32(0x265e5a51)), np.uint32(14)); q[18] = c
+    b = c + left_rotate((b + phi2(c, d, a) + m[0] + np.uint32(0xe9b6c7aa)), np.uint32(20)); q[19] = b
 
 def print_horizontal_bit_matrix(q_array, title_name):
-    reg_order = ['a', 'd', 'c', 'b'] * 4
+    reg_order = ['a', 'd', 'c', 'b'] * 5  # 擴展到 20 個
     print("\n" + "=" * 70)
-    print(f" {title_name} (16 rows x 32 columns)")
+    print(f" {title_name} ({len(q_array)} rows x 32 columns)")
     print("=" * 70)
-    for i in range(16):
+    for i in range(len(q_array)):
         bin_str = f"{q_array[i]:032b}"
         formatted_bits = " ".join(bin_str[j:j+4] for j in range(0, 32, 4))
         print(f"q[{i:<2}]({reg_order[i]}) | {formatted_bits}")
 
-def check_with_imported_masks(q_array):
-    reg_order = ['a', 'd', 'c', 'b'] * 4
-    all_passed = True
-    
-    print("\n" + "=" * 70)
-    print(" " * 15 + "check if message modification valid")
-    print("=" * 70)
-    
-    for i in range(16):
-        mismatches = []
-        for bit_idx in range(32):
-            bit_mask = np.uint32(1) << np.uint32(bit_idx)
-            bit_pos = bit_idx + 1        
-            actual_bit = (q_array[i] >> np.uint32(bit_idx)) & np.uint32(1)
-            if (MZ[i] & bit_mask) != 0 and actual_bit != 0:
-                mismatches.append(f"B{bit_pos}(MustBe:0,Act:1)")
-            if (MO[i] & bit_mask) != 0 and actual_bit != 1:
-                mismatches.append(f"B{bit_pos}(MustBe:1,Act:0)")
-            if i > 0 and (MF[i] & bit_mask) != 0:
-                prev_bit = (q_array[i-1] >> np.uint32(bit_idx)) & np.uint32(1)
-                if actual_bit != prev_bit:
-                    mismatches.append(f"B{bit_pos}(MustMatchPrev,Prev:{prev_bit},Act:{actual_bit})")
-        
-        if mismatches:
-            all_passed = False
-            print(f"q[{i:<2}]({reg_order[i]}) mismatch -> {', '.join(mismatches)}")
-        else:
-            if MZ[i] != 0 or MO[i] != 0 or MF[i] != 0:
-                print(f"q[{i:<2}]({reg_order[i]}) pass")
-                
-    print("-" * 70)
-    
 def main():
     m_rand = np.random.randint(0, 4294967295, size=16, dtype=np.uint32)
     m0 = m_rand.copy()
     q_dummy = np.zeros(16, dtype=np.uint32)
-    block0(m0, q_dummy, np.uint32(1), np.uint32(0))
+    q_returned = block0(m0, q_dummy, np.uint32(1))
+    q_normal = np.zeros(20, dtype=np.uint32)
+    normal_block0_step20(m0, q_normal)
+    is_match = np.array_equal(q_returned, q_normal)
+    print("=" * 70)
+    print(f" Check q array match (block0 returned vs Normal compute): {'PASS' if is_match else '❌ FAIL'}")
+    print("=" * 70)
+    if not is_match:
+        print("Warning: q_returned from block0 does not match locally calculated q_normal!")
+        for i in range(20):
+            if q_returned[i] != q_normal[i]:
+                print(f"Mismatch at step {i}: returned=0x{q_returned[i]:08x}, normal=0x{q_normal[i]:08x}")
+
     delta_m0 = np.zeros(16, dtype=np.uint32)
     delta_m0[4]  = np.uint32(1) << np.uint32(31)  # 2^31
     delta_m0[11] = np.uint32(1) << np.uint32(15)  # 2^15
     delta_m0[14] = np.uint32(1) << np.uint32(31)  # 2^31
     m0_prime = m0 + delta_m0
-    q = np.zeros(16, dtype=np.uint32)
-    q_prime = np.zeros(16, dtype=np.uint32)
-    normal_block0(m0, q)
-    normal_block0(m0_prime, q_prime)
-    print("=" * 70)
-    print("state differential (xor & modular diff)")
-    print("=" * 70)
     
-    reg_order = ['a', 'd', 'c', 'b'] * 4 
+    q_prime = np.zeros(20, dtype=np.uint32)
+    normal_block0_step20(m0_prime, q_prime)
+    
+    print("\n" + "=" * 70)
+    print(" Message Blocks (m0 vs m0_prime)")
+    print("=" * 70)
     for i in range(16):
-        xor_diff = q[i] ^ q_prime[i]
+        diff_flag = " <--" if m0[i] != m0_prime[i] else ""
+        print(f"m[{i:<2}] | m0: 0x{m0[i]:08x} | m0': 0x{m0_prime[i]:08x}{diff_flag}")
+
+    print("\n" + "=" * 70)
+    print(" state differential (xor & modular diff)")
+    print("=" * 70)
+    reg_order = ['a', 'd', 'c', 'b'] * 5 
+    for i in range(20):
+        xor_diff = q_normal[i] ^ q_prime[i]
         with np.errstate(over='ignore', under='ignore'):
-            mod_diff = np.uint32(q_prime[i] - q[i])
-        print(f"q[{i:<2}] | {reg_order[i]:<3} | 0x{q[i]:08x} | 0x{q_prime[i]:08x} | 0x{xor_diff:08x} | 0x{mod_diff:08x}")
-    print_horizontal_bit_matrix(q, "bits of q (from M0)")
-    xor_array = q ^ q_prime
+            mod_diff = np.uint32(q_prime[i] - q_normal[i])
+        print(f"q[{i:<2}] | {reg_order[i]:<3} | 0x{q_normal[i]:08x} | 0x{q_prime[i]:08x} | 0x{xor_diff:08x} | 0x{mod_diff:08x}")
+        
+    print_horizontal_bit_matrix(q_normal, "bits of q (from M0)")
+    xor_array = q_normal ^ q_prime
     print_horizontal_bit_matrix(xor_array, "xor differential matrix (q ^ q')")
-    check_with_imported_masks(q)
 
 if __name__ == "__main__":
     main()
