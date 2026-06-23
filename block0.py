@@ -1,21 +1,9 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 shrimp2845
+# This program is a tribute to all the cryptographers who contributed to cracking MD5
+
 import numpy as np
 from numba import njit
-
-'''
-7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
-5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20,
-4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
-6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21
-
-0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee, 0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
-0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be, 0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821,
-0xf61e2562, 0xc040b340, 0x265e5a51, 0xe9b6c7aa, 0xd62f105d, 0x02441453, 0xd8a1e681, 0xe7d3fbc8,
-0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed, 0xa9e3e905, 0xfcefa3f8, 0x676f02d9, 0x8d2a4c8a,
-0xfffa3942, 0x8771f681, 0x6d9d6122, 0xfde5380c, 0xa4beea44, 0x4bdecfa9, 0xf6bb4b60, 0xbebfbc70,
-0x289b7ec6, 0xeaa127fa, 0xd4ef3085, 0x04881d05, 0xd9d4d039, 0xe6db99e5, 0x1fa27cf8, 0xc4ac5665,
-0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039, 0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1,
-0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1, 0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
-'''
 
 def get_mask(lm):
     mask = np.uint32(0)
@@ -75,10 +63,9 @@ def rand64(state):
     state ^= state >> np.uint64(7)
     state ^= state << np.uint64(17)
     return state
-
-    
+ 
 @njit('uint32[:](uint32[:], uint32[:], uint32)', cache = True)
-def block0(m, q, debug1):
+def block0(m, q, debug):
     """
     1.using single message modification technic to modify original
     message to satisfy sufficient conditions in first 16 steps
@@ -91,7 +78,11 @@ def block0(m, q, debug1):
     satisfied go back to 2., posibility to pass is 1/2³⁵ while using 
     real sufficient condition from Liang et al.
     
-    barely using loops, conditional expressions and arrays for better performance
+    note: there is around 20% probability that differantial goes wrong
+    in th 19th step (Im not sure if there is still problems in Liang et al.'s conditions 
+    or I mess it up some where). it causes the whole differantial to collapes,  
+    and it does not effect the probability of the cases to satisfy all the conditions 
+    in 21 ~ 64 steps, so there is overall 20% to fail 
     
     m: original message
     q: buffer to store output of every step for future use of multi message modification
@@ -288,15 +279,15 @@ def block0(m, q, debug1):
         nm4 = right_rotate((a2 - b1), np.uint32(7)) - a1 - phi1(b1, c1, d1) - np.uint32(0xf57c0faf)
         nm5 = right_rotate((d2 - a2), np.uint32(12)) - d1 - phi1(a2, b1, c1) - np.uint32(0x4787c62a)      
         
-        m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8], m[9], m[10], m[11], m[12], m[13], m[14], m[15] = nm0, nm1, nm2, nm3, nm4, nm5, nm6, nm7, nm8, nm9, nm10, nm11, nm12, nm13, nm14, nm15
-            
-        if debug1:
+        if debug:
+            m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8], m[9], m[10], m[11], m[12], m[13], m[14], m[15] = nm0, nm1, nm2, nm3, nm4, nm5, nm6, nm7, nm8, nm9, nm10, nm11, nm12, nm13, nm14, nm15
             q = np.array([a1, d1, c1, b1, a2, d2, c2, b2, a3, d3, c3, b3, a4, d4, c4, b4, a5, d5, c5, b5], dtype = 'u4')
             return q
         
         # initialize
         a, b, c, d = a5, b5, c5, d5
         
+        # pray
         a = b + left_rotate((a + phi2(b, c, d) + nm5 + np.uint32(0xd62f105d)), np.uint32(5))
         if ((a >> 17) & 1) != ((b >> 17) & 1): continue
         
@@ -380,22 +371,23 @@ def block0(m, q, debug1):
         
         b = c + left_rotate((b + phi4(c, d, a) + nm13 + np.uint32(0x4e0811a1)), np.uint32(21))
         if ((b >> 31) & 1) == ((d >> 31) & 1): continue
+        if ((b >> 25) & 1) != 0: continue
         
         a = b + left_rotate((a + phi4(b, c, d) + nm4 + np.uint32(0xf7537e82)), np.uint32(6))
         if ((a >> 25) & 1) != 1: continue    
         if ((a >> 31) & 1) != ((c >> 31) & 1): continue
         
         d = a + left_rotate((d + phi4(a, b, c) + nm11 + np.uint32(0xbd3af235)), np.uint32(10))
-        if ((d >> 25) & 1) != 1: continue
+        if ((d >> 25) & 1) != 0: continue
         if ((d >> 31) & 1) != ((b >> 31) & 1): continue
         
         sigma62 = right_rotate(d - a, np.uint32(10))
         if ((sigma62 >> 15) & 0x7F) == 0x7F: continue
         
         c = d + left_rotate((c + phi4(d, a, b) + nm2 + np.uint32(0x2ad7d2bb)), np.uint32(15))
-        if ((c >> 25) & 1) != 1: continue 
+        if ((c >> 25) & 1) != 0: continue 
         if ((c >> 31) & 1) != ((a >> 31) & 1): continue
-        
+
         b = c + left_rotate((b + phi4(c, d, a) + nm9 + np.uint32(0xeb86d391)), np.uint32(21))
 
         aa = a + IV_a
@@ -411,7 +403,8 @@ def block0(m, q, debug1):
         if ((bb >> 5) & 1) != 0: continue
         if ((bb >> 31) & 1) != ((cc >> 31) & 1): continue
         if ((cc >> 31) & 1) != ((dd >> 31) & 1): continue
-
+        
+        m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8], m[9], m[10], m[11], m[12], m[13], m[14], m[15] = nm0, nm1, nm2, nm3, nm4, nm5, nm6, nm7, nm8, nm9, nm10, nm11, nm12, nm13, nm14, nm15
         return m
     
 def main():
