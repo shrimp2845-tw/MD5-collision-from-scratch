@@ -66,15 +66,14 @@ def compute_md5_64_steps(m):
     return q
 
 def print_horizontal_bit_matrix(q_array, title_name, labels=None):
-    """Visualize the states in binary format to easily spot bit differences."""
     if labels is None:
         reg_order = ['a', 'd', 'c', 'b'] * 16
     else:
         reg_order = labels
 
-    print("\n" + "=" * 80)
+    print("\n" + "=" * 70)
     print(f" {title_name} ({len(q_array)} rows x 32 columns)")
-    print("=" * 80)
+    print("=" * 70)
     for i in range(len(q_array)):
         bin_str = f"{q_array[i]:032b}"
         formatted_bits = " ".join(bin_str[j:j+4] for j in range(0, 32, 4))
@@ -107,7 +106,7 @@ def main():
     reg_order = ['a', 'd', 'c', 'b'] * 16 
     print('\n')
     print(f"{'Step':<6} | {'Reg':<3} | {'q_normal':<10} | {'q_prime':<10} | {'XOR Diff':<10} | {'Mod Diff':<10}")
-    print("-" * 80)
+    print("-" * 70)
     for i in range(64):
         xor_diff = q_normal[i] ^ q_prime[i]
         with np.errstate(over='ignore', under='ignore'):
@@ -116,7 +115,7 @@ def main():
         print(f"q[{i:<2}] {highlight:<2}| {reg_order[i]:<3} | 0x{q_normal[i]:08x} | 0x{q_prime[i]:08x} | 0x{xor_diff:08x} | 0x{mod_diff:08x}")
     print('\n')
     print(f"{'Reg':<6} | {'Normal':<10} | {'Prime':<10} | {'XOR Diff':<10} | {'Mod Diff':<10}")
-    print("-" * 80)
+    print("-" * 70)
     for i in range(4):
         xor_diff = final_normal[i] ^ final_prime[i]
         with np.errstate(over='ignore', under='ignore'):
