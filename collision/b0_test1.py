@@ -28,7 +28,7 @@ def normal_block0_step20(m, q):
     b = c + left_rotate((b + phi2(c, d, a) + m[0] + np.uint32(0xe9b6c7aa)), np.uint32(20)); q[19] = b
 
 def print_horizontal_bit_matrix(q_array, title_name):
-    reg_order = ['a', 'd', 'c', 'b'] * 5  # 擴展到 20 個
+    reg_order = ['a', 'd', 'c', 'b'] * 5
     print("\n" + "=" * 70)
     print(f" {title_name} ({len(q_array)} rows x 32 columns)")
     print("=" * 70)
@@ -46,7 +46,7 @@ def main():
     normal_block0_step20(m0, q_normal)
     is_match = np.array_equal(q_returned, q_normal)
     print("=" * 70)
-    print(f" Check q array match (block0 returned vs Normal compute): {'PASS' if is_match else '❌ FAIL'}")
+    print(f" Check q array match (block0 returned vs Normal compute): {'PASS' if is_match else 'FAIL'}")
     print("=" * 70)
     if not is_match:
         print("Warning: q_returned from block0 does not match locally calculated q_normal!")

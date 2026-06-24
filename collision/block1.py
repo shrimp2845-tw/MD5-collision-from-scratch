@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 shrimp2845
+# This program is a tribute to all the cryptographers who contributed to cracking MD5
+
 '''
 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
 5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20,
@@ -13,3 +17,30 @@
 0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039, 0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1,
 0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1, 0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
 '''
+
+import numpy as np
+from numba import njit
+from block0 import phi1, phi2, phi3, phi4, right_rotate, left_rotate, rand64, get_mask
+
+MZ1, MO1, MFN1 = get_mask([6, 12, 26, 28]), get_mask([22, 27]), get_mask([32])
+
+@njit('uint32[:](uint32[:], uint32[:])', cache = True)
+def block1(m, ivs):
+    """
+    todo: 
+    """
+    
+    # initialize
+    aa, bb, cc, dd = ivs
+    a, b, c, d = aa, bb, cc, dd
+    m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13 = m
+    
+    # step 1
+    temp = b + left_rotate((a + phi1(b, c, d) + m0 + np.uint32(0xd76aa478)), np.uint32(7))
+    target = (temp & ~MFN1) | ((~b) & MFN1)
+    target = (target | MO1) & ~MZ1
+    m0 = right_rotate((target - b), np.uint32(7)) - a - phi1(b, c, d) - np.uint32(0xd76aa478)
+    a = target
+    q0 = a
+    
+    # step 2
