@@ -87,7 +87,7 @@ def main():
     start_time = time.time()
     m0 = block0(m_rand.copy(), q_dummy, np.uint32(0))
     elapsed = time.time() - start_time    
-    print(f"Found! Time: {elapsed:.2f} seconds")
+    print("Found!")
     q_normal = compute_md5_64_steps(m0)
     delta_m0 = np.zeros(16, dtype=np.uint32)
     delta_m0[4]  = np.uint32(1) << np.uint32(31)  # 2^31
@@ -128,6 +128,6 @@ def main():
     
     print_horizontal_bit_matrix(final_normal, "Final Output Registers Matrix (aa, bb, cc, dd)", labels=out_labels)
     print_horizontal_bit_matrix(final_normal ^ final_prime, "Final Output XOR Differential Matrix (aa^aa', bb^bb', ...)", labels=out_labels)
-
+    print(f'\nTime: {elapsed:.2f} seconds')
 if __name__ == "__main__":
     main()
