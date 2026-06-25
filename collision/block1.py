@@ -22,25 +22,44 @@ import numpy as np
 from numba import njit
 from block0 import phi1, phi2, phi3, phi4, right_rotate, left_rotate, rand64, get_mask
 
-MZ1, MO1, MFN1 = get_mask([6, 12, 26, 28]), get_mask([22, 27]), get_mask([32])
+T16 = np.array(list(map(np.uint32, [0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee, 0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501, 0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be, 0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821])), dtype = 'u4')
+R16 = np.array(list(map(np.uint32, [7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22])), dtype = 'u4')
 
-@njit('uint32[:](uint32[:], uint32[:])', cache = True)
-def block1(m, ivs):
+# todo: finish all mask
+MZ1, MO1, MF1, MFN1 = get_mask([6, 12, 26, 28]), get_mask([22, 27]), get_mask([]), get_mask([32])
+
+MASKS = np.array([[MZ1, MO1, MF1, MFN1]], dtype = 'u4')
+
+@njit('UniTuple(uint32, 2)(uint32, uint32, uint32, uint32, uint32, uint32, uint32, uint32, uint32, uint32, uint32)')
+def single_mod(s1, s2, s3, s4, mz, mo, mf, mfn, m, t, r):
+    temp = s2 + left_rotate(s1 + phi1(s2, s3, s4) + m + t, r)
+    target = (temp & ~mfn) | ((~s2) & mfn)
+    target = (target & ~mf) | (s2 & mf)
+    target = (target | mo) & ~mz
+    nm = right_rotate((target - s2), r) - s1 - phi1(s2, s3, s4) - t
+    return target, nm
+           
+@njit('uint32[:](uint32[:], uint32[:], uint32[:])', cache = True)
+def block1(m, q, ivs):
     """
-    todo: 
+    block1 only take 14 random M1, and generate last 2 by it self
     """
     
     # initialize
     aa, bb, cc, dd = ivs
-    a, b, c, d = aa, bb, cc, dd
-    m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13 = m
+    s1, s2, s3, s4 = aa, bb, cc, dd
     
-    # step 1
-    temp = b + left_rotate((a + phi1(b, c, d) + m0 + np.uint32(0xd76aa478)), np.uint32(7))
-    target = (temp & ~MFN1) | ((~b) & MFN1)
-    target = (target | MO1) & ~MZ1
-    m0 = right_rotate((target - b), np.uint32(7)) - a - phi1(b, c, d) - np.uint32(0xd76aa478)
-    a = target
-    q0 = a
+    """
+    because the author is stupid and didn't realize that first 16 step only execute
+    once in finding one block until finish first 16 steps of block0, so I'll do it 
+    smarter this time
+    """
     
-    # step 2
+    for i in range(14):
+        t, r = T16[i], R16[i]        
+        mz, mo, mf, mfn = MASKS[i]
+        mi = m[i]
+        ns, nm = single_mod(s1, s2, s3, s4, mz, mo, mf, mfn, mi, t, r)
+        s1, m[i] = ns, nm
+        q[i] = s1
+        s1, s2, s3, s4 = s4, s1, s2, s3
