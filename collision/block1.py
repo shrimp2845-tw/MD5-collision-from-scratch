@@ -25,9 +25,9 @@ from block0 import phi1, phi2, phi3, phi4, right_rotate, left_rotate, rand64, ge
 T16 = np.array(list(map(np.uint32, [0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee, 0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501, 0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be, 0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821])), dtype = 'u4')
 R16 = np.array(list(map(np.uint32, [7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22])), dtype = 'u4')
 
-MZ1, MO1, MF1, MFN1 = get_mask([6, 12, 26, 28]), get_mask([22, 27]), get_mask([]), get_mask([32])
-MZ2, MO2, MF2, MFN2 = get_mask([2, 3, 6, 22, 26]), get_mask([12, 17, 27, 28]), get_mask([7, 8, 13, 18, 19, 20, 21, 29, 30, 31, 32]), get_mask([])
-MZ3, MO3, MF3, MFN3 = get_mask([8, 13, 22, 31]), get_mask([2, 3, 6, 7, 9, 12, 17, 18, 19, 20, 21, 26, 27, 28, 29, 30]), get_mask([4, 5, 32]), get_mask([])
+MZ1, MO1, MF1, MFN1 = get_mask([6, 12, 26, 28]), get_mask([17, 22, 27]), get_mask([]), get_mask([32])
+MZ2, MO2, MF2, MFN2 = get_mask([2, 3, 6, 16, 22, 26]), get_mask([1, 12, 17, 27, 28]), get_mask([7, 8, 13, 18, 19, 20, 21, 29, 30, 31, 32]), get_mask([])
+MZ3, MO3, MF3, MFN3 = get_mask([8, 13, 22, 31]), get_mask([2, 3, 6, 7, 9, 12, 16, 17, 18, 19, 20, 21, 26, 27, 28, 29, 30]), get_mask([4, 5, 32]), get_mask([])
 MZ4, MO4, MF4, MFN4 = get_mask([2, 3, 4, 6, 7, 8, 9, 12, 13, 17, 18, 20, 21, 22, 27, 31]), get_mask([1, 5, 19, 26, 28, 29, 30]), get_mask([10, 11, 32]), get_mask([])
 MZ5, MO5, MF5, MFN5 = get_mask([1, 2, 3, 4, 6, 8, 9, 13, 21, 27, 29, 30]), get_mask([5, 7, 10, 11, 12, 17, 18, 19, 20, 22, 28, 31]), get_mask([]), get_mask([32])
 MZ6, MO6, MF6, MFN6 = get_mask([1, 4, 6, 8, 9, 10, 13, 17, 21, 26, 28, 29]), get_mask([2, 3, 5, 7, 11, 12, 18, 22, 27]), get_mask([32]), get_mask([])
@@ -39,6 +39,7 @@ MZ11, MO11, MF11, MFN11 = get_mask([13, 18]), get_mask([1, 2, 7, 8, 9, 10, 16, 1
 MZ12, MO12, MF12, MFN12 = get_mask([14, 15, 16, 17, 18, 19]), get_mask([8, 13, 20]), get_mask([25, 26, 27, 28, 29, 30, 31, 32]), get_mask([])
 MZ13, MO13, MF13, MFN13 = get_mask([8, 31]), get_mask([4, 14, 15, 16, 17, 18, 19, 20, 25, 26, 27, 28, 29, 30]), get_mask([]), get_mask([32])
 MZ14, MO14, MF14, MFN14 = get_mask([25, 26, 27, 28, 29, 30]), get_mask([4, 8, 14, 15, 16, 17, 18, 19, 20, 31]), get_mask([32]), get_mask([])
+MZ15, MO15, MF15 = get_mask([1, 9, 13, 14, 18, 19, 31, 32]), get_mask([]), get_mask([])
 
 MASKS = np.array([[MZ1, MO1, MF1, MFN1],
         [MZ2, MO2, MF2, MFN2],
@@ -88,3 +89,4 @@ def block1(m, q, ivs):
         s1, m[i] = ns, nm
         q[i] = s1
         s1, s2, s3, s4 = s4, s1, s2, s3
+    return q
