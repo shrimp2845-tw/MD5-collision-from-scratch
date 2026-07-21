@@ -3,10 +3,10 @@ import warnings
 warnings.filterwarnings('ignore', category=RuntimeWarning)
 
 import numpy as np
+import time
 import math
 from block0 import left_rotate, phi1, block0
 from block1 import block1
-
 
 def get_md5_ivs(m):
     T = [int(4294967296 * abs(math.sin(i))) & 0xFFFFFFFF for i in range(1, 65)]
@@ -88,19 +88,15 @@ def print_horizontal_bit_matrix(q_array, title_name):
 
 
 def main():
-    print("=" * 70)
-    print(" Running block0 to find m0 and generate IVs for block1...")
-    print("=" * 70)
-
+    st = time.time()
+    print('executing......')
     m0_rand = np.random.randint(0, 4294967295, size=16, dtype=np.uint32)
     q_dummy_0 = np.zeros(16, dtype=np.uint32)
 
     m0 = block0(m0_rand, q_dummy_0, np.uint32(0))
     ivs_normal = get_md5_ivs(m0)
 
-    print("Block0 finished!")
-    print(
-        f"Generated IVs (Normal): a=0x{ivs_normal[0]:08x}, b=0x{ivs_normal[1]:08x}, c=0x{ivs_normal[2]:08x}, d=0x{ivs_normal[3]:08x}")
+    print(f"IVs (Normal): a=0x{ivs_normal[0]:08x}, b=0x{ivs_normal[1]:08x}, c=0x{ivs_normal[2]:08x}, d=0x{ivs_normal[3]:08x}")
 
     delta_m0 = np.zeros(16, dtype=np.uint32)
     delta_m0[4] = np.uint32(1) << np.uint32(31)  # +2^31
@@ -109,18 +105,17 @@ def main():
     m0_prime = m0 + delta_m0
 
     ivs_prime = get_md5_ivs(m0_prime)
-    print(
-        f"Generated IVs (Prime) : a=0x{ivs_prime[0]:08x}, b=0x{ivs_prime[1]:08x}, c=0x{ivs_prime[2]:08x}, d=0x{ivs_prime[3]:08x}")
+    print(f"IVs (Prime) : a=0x{ivs_prime[0]:08x}, b=0x{ivs_prime[1]:08x}, c=0x{ivs_prime[2]:08x}, d=0x{ivs_prime[3]:08x}")
 
     with np.errstate(over='ignore', under='ignore'):
         delta_h1_calculated = ivs_prime - ivs_normal
 
     print("\n" + "-" * 70)
-    print(" Verifying Delta H1 (ivs_prime - ivs_normal):")
-    print(f"  da = 0x{delta_h1_calculated[0]:08x} (Expected: 0x80000000)")
-    print(f"  db = 0x{delta_h1_calculated[1]:08x} (Expected: 0x82000000)")
-    print(f"  dc = 0x{delta_h1_calculated[2]:08x} (Expected: 0x82000000)")
-    print(f"  dd = 0x{delta_h1_calculated[3]:08x} (Expected: 0x82000000)")
+    print("Delta H1 (ivs_prime - ivs_normal):")
+    print(f"da = 0x{delta_h1_calculated[0]:08x}")
+    print(f"db = 0x{delta_h1_calculated[1]:08x}")
+    print(f"dc = 0x{delta_h1_calculated[2]:08x}")
+    print(f"dd = 0x{delta_h1_calculated[3]:08x}")
     print("-" * 70 + "\n")
 
     m1_rand = np.random.randint(0, 4294967295, size=16, dtype=np.uint32)
@@ -133,9 +128,6 @@ def main():
     normal_block1_step14(m1, q_normal, ivs_normal)
 
     is_match = np.array_equal(q_returned, q_normal)
-    print("=" * 70)
-    print(f" Check q array match (block1 JIT vs Normal compute): {'PASS' if is_match else 'FAIL'}")
-    print("=" * 70)
     if not is_match:
         for i in range(14):
             if q_returned[i] != q_normal[i]:
@@ -151,14 +143,14 @@ def main():
     normal_block1_step14(m1_prime, q_prime, ivs_prime)
 
     print("\n" + "=" * 70)
-    print(" Message Blocks (m1 vs m1_prime)")
+    print("Message Blocks")
     print("=" * 70)
     for i in range(16):
         diff_flag = " <--" if m1[i] != m1_prime[i] else ""
         print(f"m[{i:<2}] | m1: 0x{m1[i]:08x} | m1': 0x{m1_prime[i]:08x}{diff_flag}")
 
     print("\n" + "=" * 70)
-    print(" state differential (xor & modular diff)")
+    print("differential")
     print("=" * 70)
     reg_order = (['a', 'd', 'c', 'b'] * 4)[:14]
     for i in range(14):
@@ -168,10 +160,10 @@ def main():
         print(
             f"q[{i:<2}] | {reg_order[i]:<3} | 0x{q_normal[i]:08x} | 0x{q_prime[i]:08x} | 0x{xor_diff:08x} | 0x{mod_diff:08x}")
 
-    print_horizontal_bit_matrix(q_normal, "bits of q (from M1)")
+    print_horizontal_bit_matrix(q_normal, "bits of q")
     xor_array = q_normal ^ q_prime
-    print_horizontal_bit_matrix(xor_array, "xor differential matrix (q ^ q')")
-
+    print_horizontal_bit_matrix(xor_array, "xor differential")
+    print(f'\n Time: {time.time()-st:.2f}')
 
 if __name__ == "__main__":
     main()
