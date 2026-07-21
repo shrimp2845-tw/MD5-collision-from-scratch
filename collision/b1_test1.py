@@ -163,7 +163,7 @@ def main():
     print_horizontal_bit_matrix(q_normal, "bits of q")
     xor_array = q_normal ^ q_prime
     print_horizontal_bit_matrix(xor_array, "xor differential")
-    print(f'\n Time: {time.time()-st:.2f}')
+    print(f'\n Time: {time.time()-st:.2f} sec')
 
 if __name__ == "__main__":
     main()
