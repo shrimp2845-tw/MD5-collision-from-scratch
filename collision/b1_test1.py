@@ -118,10 +118,10 @@ def main():
     print(f"dd = 0x{delta_h1_calculated[3]:08x}")
     print("-" * 70 + "\n")
 
-    m1_rand = np.random.randint(0, 4294967295, size=16, dtype=np.uint32)
+    m1_rand = np.random.randint(0, 4294967295, size=14, dtype=np.uint32)
     m1 = m1_rand.copy()
     q_dummy = np.zeros(14, dtype=np.uint32)
-    block1(m1, q_dummy, ivs_normal)
+    block1(m1, q_dummy, ivs_normal, np.uint32(1))
     q_returned = q_dummy.copy()
 
     q_normal = np.zeros(14, dtype=np.uint32)
@@ -133,10 +133,9 @@ def main():
             if q_returned[i] != q_normal[i]:
                 print(f"Mismatch at step {i}: returned=0x{q_returned[i]:08x}, normal=0x{q_normal[i]:08x}")
 
-    delta_m1 = np.zeros(16, dtype=np.uint32)
+    delta_m1 = np.zeros(14, dtype=np.uint32)
     delta_m1[4] = np.uint32(1) << np.uint32(31)  # +2^31
     delta_m1[11] = np.uint32(0xFFFF8000)  # -2^15
-    delta_m1[14] = np.uint32(1) << np.uint32(31)  # +2^31
     m1_prime = m1 + delta_m1
 
     q_prime = np.zeros(14, dtype=np.uint32)
@@ -145,7 +144,7 @@ def main():
     print("\n" + "=" * 70)
     print("Message Blocks")
     print("=" * 70)
-    for i in range(16):
+    for i in range(14):
         diff_flag = " <--" if m1[i] != m1_prime[i] else ""
         print(f"m[{i:<2}] | m1: 0x{m1[i]:08x} | m1': 0x{m1_prime[i]:08x}{diff_flag}")
 

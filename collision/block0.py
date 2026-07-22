@@ -362,13 +362,13 @@ def block0(m, q, debug):
         
         a = b + left_rotate((a + phi4(b, c, d) + nm8 + np.uint32(0x6fa87e4f)), np.uint32(6))
         if ((a >> 31) & 1) != ((c >> 31) & 1): continue
-        
+      
         d = a + left_rotate((d + phi4(a, b, c) + nm15 + np.uint32(0xfe2ce6e0)), np.uint32(10))
         if ((d >> 31) & 1) != ((b >> 31) & 1): continue
-        
+       
         c = d + left_rotate((c + phi4(d, a, b) + nm6 + np.uint32(0xa3014314)), np.uint32(15))
         if ((c >> 31) & 1) != ((a >> 31) & 1): continue
-        
+
         b = c + left_rotate((b + phi4(c, d, a) + nm13 + np.uint32(0x4e0811a1)), np.uint32(21))
         if ((b >> 31) & 1) == ((d >> 31) & 1): continue
         if ((b >> 25) & 1) != 0: continue
@@ -387,7 +387,7 @@ def block0(m, q, debug):
         c = d + left_rotate((c + phi4(d, a, b) + nm2 + np.uint32(0x2ad7d2bb)), np.uint32(15))
         if ((c >> 25) & 1) != 0: continue 
         if ((c >> 31) & 1) != ((a >> 31) & 1): continue
-
+        
         b = c + left_rotate((b + phi4(c, d, a) + nm9 + np.uint32(0xeb86d391)), np.uint32(21))
 
         aa = a + IV_a

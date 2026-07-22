@@ -38,8 +38,9 @@ MZ10, MO10, MF10, MFN10 = get_mask([1, 2, 13, 19]), get_mask([7, 8, 9, 10, 12, 1
 MZ11, MO11, MF11, MFN11 = get_mask([12, 13, 18]), get_mask([1, 2, 7, 8, 9, 10, 16, 17, 19]), get_mask([14, 15, 20, 32]), get_mask([])
 MZ12, MO12, MF12, MFN12 = get_mask([14, 15, 16, 17, 18, 19]), get_mask([8, 13, 20]), get_mask([25, 26, 27, 28, 29, 30, 31, 32]), get_mask([])
 MZ13, MO13, MF13, MFN13 = get_mask([8, 24, 31]), get_mask([4, 14, 15, 16, 17, 18, 19, 20, 25, 26, 27, 28, 29, 30]), get_mask([]), get_mask([32])
-MZ14, MO14, MF14, MFN14 = get_mask([25, 26, 27, 28, 29, 30]), get_mask([4, 8, 14, 15, 16, 17, 18, 19, 20, 24, 31]), get_mask([32]), get_mask([])
-MZ15, MO15, MF15 = get_mask([1, 9, 13, 14, 18, 19, 31, 32]), get_mask([]), get_mask([])
+MZ14, MO14, MF14, MFN14 = get_mask([25, 26, 27, 28, 29, 30]), get_mask([4, 8, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 31]), get_mask([32]), get_mask([])
+MZ15, MO15 = get_mask([4, 16, 17, 26]), get_mask([25, 27, 28, 29, 30, 31])
+MZ16, MO16, MF16 = get_mask([29]), get_mask([4, 16, 17]), get_mask([32])
 
 MASKS = np.array([[MZ1, MO1, MF1, MFN1],
         [MZ2, MO2, MF2, MFN2],
@@ -65,8 +66,8 @@ def single_mod(s1, s2, s3, s4, mz, mo, mf, mfn, m, t, r):
     nm = right_rotate((target - s2), r) - s1 - phi1(s2, s3, s4) - t
     return target, nm
            
-@njit('uint32[:](uint32[:], uint32[:], uint32[:])', cache = True)
-def block1(m, q, ivs):
+@njit('uint32[:](uint32[:], uint32[:], uint32[:], uint32)', cache = True)
+def block1(m, q, ivs, debug):
     """
     todo: write something here XD
     """
@@ -89,4 +90,31 @@ def block1(m, q, ivs):
         s1, m[i] = ns, nm
         q[i] = s1
         s1, s2, s3, s4 = s4, s1, s2, s3
-    return q
+    
+    if debug:
+        return q
+    
+    m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13 = m
+    q0, q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12, q13 = q
+    seed = np.uint64(0x736872696d702845) + np.uint64(m[0]) 
+    
+    while True:
+        # initialize 
+        nm0, nm1, nm2, nm3, nm4, nm5, nm6, nm7, nm8, nm9, nm10, nm11, nm12, nm13 = m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13
+        a1, d1, c1, b1, a2, d2, c2, b2, a3, d3, c3, b3, a4, d4 = q0, q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12, q13
+        
+        # random c4 and compute m14
+        temp = rand64(seed)
+        seed = temp
+        c4 = (temp | MO15) & ~MZ15
+        nm14 = right_rotate((c4 - d4), np.uint32(17)) - c3 - phi1(d4, a4, b3) - np.uint32(0xa679438e)
+        
+        # random b4 and compute m15
+        temp = rand64(seed)
+        seed = temp
+        temp = (temp & ~MF16) | (c4 & MF16)
+        b4 = (temp | MO16) & ~MZ16
+        nm15 = right_rotate((b4 - c4), np.uint32(22)) - b3 - phi1(c4, d4, a4) - np.uint32(0x49b40821)
+        
+        # WIP
+        return q

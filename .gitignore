@@ -9,3 +9,4 @@ temp_test*
 digest.txt
 utils/
 benchmark.py
+block0_ivs.txt
