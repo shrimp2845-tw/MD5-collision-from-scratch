@@ -38,10 +38,10 @@ MZ10, MO10, MF10, MFN10 = get_mask([1, 2, 13, 19]), get_mask([7, 8, 9, 10, 12, 1
 MZ11, MO11, MF11, MFN11 = get_mask([12, 13, 18]), get_mask([1, 2, 7, 8, 9, 10, 16, 17, 19]), get_mask([14, 15, 20, 32]), get_mask([])
 MZ12, MO12, MF12, MFN12 = get_mask([14, 15, 16, 17, 18, 19]), get_mask([8, 13, 20]), get_mask([25, 26, 27, 28, 29, 30, 31, 32]), get_mask([])
 MZ13, MO13, MF13, MFN13 = get_mask([8, 24, 31]), get_mask([4, 14, 15, 16, 17, 18, 19, 20, 25, 26, 27, 28, 29, 30]), get_mask([]), get_mask([32])
-MZ14, MO14, MF14, MFN14 = get_mask([25, 26, 27, 28, 29, 30]), get_mask([4, 8, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 31]), get_mask([32]), get_mask([])
+MZ14, MO14, MF14, MFN14 = get_mask([19, 25, 26, 27, 28, 29, 30]), get_mask([4, 8, 14, 15, 16, 17, 18, 20, 21, 22, 23, 24, 31]), get_mask([32]), get_mask([])
 MZ15, MO15 = get_mask([4, 16, 17, 26]), get_mask([25, 27, 28, 29, 30, 31])
 MZ16, MO16, MF16 = get_mask([29]), get_mask([4, 16, 17]), get_mask([32])
-MF17 = get_mask([4, 16, 18])
+MZ17, MO17, MF17 = get_mask([18]), get_mask([]), get_mask([4, 16])
 
 MASKS = np.array([[MZ1, MO1, MF1, MFN1],
         [MZ2, MO2, MF2, MFN2],
@@ -91,16 +91,14 @@ def block1(m, q, ivs, debug):
         s1, m[i] = ns, nm
         q[i] = s1
         s1, s2, s3, s4 = s4, s1, s2, s3
-    
-    if debug:
-        return q
+
     
     m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13 = m
     q0, q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12, q13 = q
     seed = np.uint64(0x736872696d702845) + np.uint64(m[0]) 
-    
+
     while True:
-        # initialize 
+        # step (c)
         nm0, nm1, nm2, nm3, nm4, nm5, nm6, nm7, nm8, nm9, nm10, nm11, nm12, nm13 = m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13
         a1, d1, c1, b1, a2, d2, c2, b2, a3, d3, c3, b3, a4, d4 = q0, q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11, q12, q13
         
@@ -109,31 +107,36 @@ def block1(m, q, ivs, debug):
         seed = temp
         c4 = (temp | MO15) & ~MZ15
         nm14 = right_rotate((c4 - d4), np.uint32(17)) - c3 - phi1(d4, a4, b3) - np.uint32(0xa679438e)
-        
+        c4 = d4 + left_rotate(c4 + phi1(d4, a4, b3) + nm14 + np.uint32(0xa679438e), np.uint32(17))
+
         # random b4 and compute m15
         temp = rand64(seed)
         seed = temp
         temp = (temp & ~MF16) | (c4 & MF16)
         b4 = (temp | MO16) & ~MZ16
         nm15 = right_rotate((b4 - c4), np.uint32(22)) - b3 - phi1(c4, d4, a4) - np.uint32(0x49b40821)
-        
+        if debug:
+            return np.array([nm0, nm1, nm2, nm3, nm4, nm5, nm6, nm7, nm8, nm9, nm10, nm11, nm12, nm13, nm14, nm15], dtype=np.uint32)
         # step 17       
-        sigma17 = a4 + phi2(b4, c4, d4) + nm1 + np.uint32(0xf61e2562)       
-        temp = b4 + (sigma17 << 5)
+        sigma17 = a4 + phi2(b4, c4, d4) + nm1 + np.uint32(0xf61e2562e)
+        temp = b4 + left_rotate(sigma17, 5)
+
         a5 = (temp & ~MF17) | (b4 & MF17)
-        
+        a5 = (a5 | MO17) & ~MZ17
+
         d1 = d1 ^ right_rotate((temp ^ a5), np.uint32(7))
         nm1 = right_rotate((d1 - a1), np.uint32(12)) - dd - phi1(a1, bb, cc) - np.uint32(0xe8c7b756)
         
-        sigma17 = a4 + phi2(b4, c4, d4) + nm1 + np.uint32(0xf61e2562)
-        
+        sigma17 = a4 + phi2(b4, c4, d4) + nm1 + np.uint32(0xf61e2562e)
+
         # sigma 25~27 not all one
         if ((sigma17 >> 24) & np.uint32(7)) == np.uint32(7): continue
-        a5 = b4 + (sigma17 << 5)
-        
+        a5 = b4 + left_rotate(sigma17, 5)
+
         # a5,32 = b4,32
         if (a5 >> 31) != (b4 >> 31): continue
-        
+        if debug:
+            return np.array([nm0, nm1, nm2, nm3, nm4, nm5, nm6, nm7, nm8, nm9, nm10, nm11, nm12, nm13, nm14, nm15], dtype=np.uint32)
         # step 18
         d5 = a5 + left_rotate(d4 + phi2(a5, b4, c4) + nm6 + np.uint32(0xc040b340), np.uint32(9))
         
@@ -148,5 +151,37 @@ def block1(m, q, ivs, debug):
             nm10 = right_rotate(c3 - d3, 17) - c2 - phi1(d3, a3, b2) - np.uint32(0xffff5bb1)
         
         # step 19
-        # WIP
-        return m
+
+        found_step19 = False
+        b3_base = b3 & ~np.uint32(0x00F00078)
+
+        for i in range(1, 256, 127):
+            nb3 = b3_base | np.uint32((i & 0x0F) << 3) | np.uint32(((i >> 4) & 0x0F) << 20)
+            nm11 = right_rotate((nb3 - c3), np.uint32(22)) - b2 - phi1(c3, d3, a3) - np.uint32(0x895cd7be)
+            sigma19 = c4 + phi2(d5, a5, b4) + nm11 + np.uint32(0x265e5a51)
+            c5 = d5 + left_rotate(sigma19, np.uint32(14))
+            cond1 = (c5 & np.uint32(1 << 17)) == 0
+            cond2 = (c5 & np.uint32(1 << 31)) == (d5 & np.uint32(1 << 31))
+            cond3 = (sigma19 & np.uint32(0x0003FFF8)) != np.uint32(0x0003FFF8)
+            if cond1 and cond2 and cond3:
+                b3 = nb3
+                nm12 = right_rotate((a4 - b3), np.uint32(7)) - a3 - phi1(b3, c3, d3) - np.uint32(0x6b901122)
+                nm13 = right_rotate((d4 - a4), np.uint32(12)) - d3 - phi1(a4, b3, c3) - np.uint32(0xfd987193)
+                nm14 = right_rotate((c4 - d4), np.uint32(17)) - c3 - phi1(d4, a4, b3) - np.uint32(0xa679438e)
+                nm15 = right_rotate((b4 - c4), np.uint32(22)) - b3 - phi1(c4, d4, a4) - np.uint32(0x49b40821)
+                found_step19 = True
+                break
+        if not found_step19:
+            continue
+
+        # step 20
+        sigma20 = b4 + phi2(c5, d5, a5) + nm0 + np.uint32(0xe9b6c7aa)
+        if (sigma20 >> 29) == 0: continue
+        b5 = c5 + left_rotate(sigma20, 20)
+        if (b5 >> 31) != (c4 >> 31): continue
+
+        if debug:
+            return np.array([nm0, nm1, nm2, nm3, nm4, nm5, nm6, nm7, nm8, nm9, nm10, nm11, nm12, nm13, nm14, nm15], dtype=np.uint32)
+        # pray
+
+    return m

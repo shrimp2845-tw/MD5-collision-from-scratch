@@ -235,7 +235,7 @@ def block0(m, q, debug):
         found_step19 = False
         b3_base = b3 & ~np.uint32(0x00F00078)
         
-        for i in range(0, 256, 127):
+        for i in range(1, 256, 127):
             nb3 = b3_base | np.uint32((i & 0x0F) << 3) | np.uint32(((i >> 4) & 0x0F) << 20)
             nm11 = right_rotate((nb3 - c3), np.uint32(22)) - b2 - phi1(c3, d3, a3) - np.uint32(0x895cd7be)
             sigma19 = c4 + phi2(d5, a5, b4) + nm11 + np.uint32(0x265e5a51)
@@ -387,14 +387,13 @@ def block0(m, q, debug):
         c = d + left_rotate((c + phi4(d, a, b) + nm2 + np.uint32(0x2ad7d2bb)), np.uint32(15))
         if ((c >> 25) & 1) != 0: continue 
         if ((c >> 31) & 1) != ((a >> 31) & 1): continue
-        
         b = c + left_rotate((b + phi4(c, d, a) + nm9 + np.uint32(0xeb86d391)), np.uint32(21))
 
         aa = a + IV_a
         bb = b + IV_b
         cc = c + IV_c
         dd = d + IV_d
-        
+
         if ((dd >> 25) & 1) != 0: continue
         if ((cc >> 25) & 1) != 1: continue
         if ((cc >> 26) & 1) != 0: continue

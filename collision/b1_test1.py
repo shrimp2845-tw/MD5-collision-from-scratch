@@ -5,19 +5,41 @@ warnings.filterwarnings('ignore', category=RuntimeWarning)
 import numpy as np
 import time
 import math
-from block0 import left_rotate, phi1, block0
 from block1 import block1
 
-def get_md5_ivs(m):
+
+HARDCODED_IVS = [
+    {
+        "normal": np.array([0xb6468fb3, 0xd117bade, 0x9a191811, 0xad28c7fe], dtype=np.uint32),
+        "prime": np.array([0x36468fb3, 0x5317bade, 0x1c191811, 0x2f28c7fe], dtype=np.uint32)
+    },
+    {
+        "normal": np.array([0xb29229c8, 0xc9024b47, 0xca77844a, 0xa4aa1647], dtype=np.uint32),
+        "prime": np.array([0x329229c8, 0x4b024b47, 0x4c77844a, 0x26aa1647], dtype=np.uint32)
+    },
+    {
+        "normal": np.array([0xc2627638, 0x59120d4f, 0x1252ff58, 0x04e627e8], dtype=np.uint32),
+        "prime": np.array([0x42627638, 0xdb120d4f, 0x9452ff58, 0x86e627e8], dtype=np.uint32)
+    },
+    {
+        "normal": np.array([0xba8c16f5, 0x09336cca, 0x0a7e15df, 0x5d6d559e], dtype=np.uint32),
+        "prime": np.array([0x3a8c16f5, 0x8b336cca, 0x8c7e15df, 0xdf6d559e], dtype=np.uint32)
+    },
+    {
+        "normal": np.array([0x895ff42d, 0xb066f615, 0xd2898682, 0xdce35664], dtype=np.uint32),
+        "prime": np.array([0x095ff42d, 0x3266f615, 0x54898682, 0x5ee35664], dtype=np.uint32)
+    }
+]
+
+
+def normal_block1_step20(m, q, ivs):
+    """計算前 20 步的 MD5 狀態，涵蓋第一輪與第二輪前 4 步[cite: 3]"""
+    a, b, c, d = ivs[0], ivs[1], ivs[2], ivs[3]
     T = [int(4294967296 * abs(math.sin(i))) & 0xFFFFFFFF for i in range(1, 65)]
     S = ([7, 12, 17, 22] * 4 +
          [5, 9, 14, 20] * 4 +
          [4, 11, 16, 23] * 4 +
          [6, 10, 15, 21] * 4)
-
-    a, b, c, d = 0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476
-
-    m_int = [int(x) for x in m]
 
     def F(x, y, z):
         return (x & y) | (~x & z)
@@ -25,58 +47,25 @@ def get_md5_ivs(m):
     def G(x, y, z):
         return (x & z) | (y & ~z)
 
-    def H(x, y, z):
-        return x ^ y ^ z
-
-    def I(x, y, z):
-        return y ^ (x | ~z)
-
     def left_rot(x, n):
         return ((x << n) | (x >> (32 - n))) & 0xFFFFFFFF
 
-    for i in range(64):
+    for i in range(20):
         if i < 16:
             f = F(b, c, d)
             g = i
-        elif i < 32:
+        else:
             f = G(b, c, d)
             g = (5 * i + 1) % 16
-        elif i < 48:
-            f = H(b, c, d)
-            g = (3 * i + 5) % 16
-        else:
-            f = I(b, c, d)
-            g = (7 * i) % 16
 
-        temp = (a + f + m_int[g] + T[i]) & 0xFFFFFFFF
+        temp = (a + f + m[g] + T[i]) & 0xFFFFFFFF
         a = (b + left_rot(temp, S[i])) & 0xFFFFFFFF
-
-        a, b, c, d = d, a, b, c
-
-    aa = (a + 0x67452301) & 0xFFFFFFFF
-    bb = (b + 0xefcdab89) & 0xFFFFFFFF
-    cc = (c + 0x98badcfe) & 0xFFFFFFFF
-    dd = (d + 0x10325476) & 0xFFFFFFFF
-
-    return np.array([aa, bb, cc, dd], dtype=np.uint32)
-
-
-def normal_block1_step14(m, q, ivs):
-    a, b, c, d = ivs[0], ivs[1], ivs[2], ivs[3]
-
-    T16 = [0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee, 0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501, 0x698098d8,
-           0x8b44f7af, 0xffff5bb1, 0x895cd7be, 0x6b901122, 0xfd987193]
-    R16 = [7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12]
-
-    for i in range(14):
-        temp = a + phi1(b, c, d) + m[i] + np.uint32(T16[i])
-        a = b + left_rotate(temp, np.uint32(R16[i]))
         q[i] = a
         a, b, c, d = d, a, b, c
 
 
 def print_horizontal_bit_matrix(q_array, title_name):
-    reg_order = (['a', 'd', 'c', 'b'] * 4)[:len(q_array)]
+    reg_order = (['a', 'd', 'c', 'b'] * 5)[:len(q_array)]
     print("\n" + "=" * 70)
     print(f" {title_name} ({len(q_array)} rows x 32 columns)")
     print("=" * 70)
@@ -88,24 +77,23 @@ def print_horizontal_bit_matrix(q_array, title_name):
 
 
 def main():
+    try:
+        idx = int(input("? "))
+        if idx < 0 or idx > 4:
+            idx = 0
+    except ValueError:
+        idx = 0
+
     st = time.time()
-    print('executing......')
-    m0_rand = np.random.randint(0, 4294967295, size=16, dtype=np.uint32)
-    q_dummy_0 = np.zeros(16, dtype=np.uint32)
+    print(f'executing with IV index {idx}......')
 
-    m0 = block0(m0_rand, q_dummy_0, np.uint32(0))
-    ivs_normal = get_md5_ivs(m0)
+    ivs_normal = HARDCODED_IVS[idx]["normal"]
+    ivs_prime = HARDCODED_IVS[idx]["prime"]
 
-    print(f"IVs (Normal): a=0x{ivs_normal[0]:08x}, b=0x{ivs_normal[1]:08x}, c=0x{ivs_normal[2]:08x}, d=0x{ivs_normal[3]:08x}")
-
-    delta_m0 = np.zeros(16, dtype=np.uint32)
-    delta_m0[4] = np.uint32(1) << np.uint32(31)  # +2^31
-    delta_m0[11] = np.uint32(1) << np.uint32(15)  # +2^15
-    delta_m0[14] = np.uint32(1) << np.uint32(31)  # +2^31
-    m0_prime = m0 + delta_m0
-
-    ivs_prime = get_md5_ivs(m0_prime)
-    print(f"IVs (Prime) : a=0x{ivs_prime[0]:08x}, b=0x{ivs_prime[1]:08x}, c=0x{ivs_prime[2]:08x}, d=0x{ivs_prime[3]:08x}")
+    print(
+        f"IVs (Normal): a=0x{ivs_normal[0]:08x}, b=0x{ivs_normal[1]:08x}, c=0x{ivs_normal[2]:08x}, d=0x{ivs_normal[3]:08x}")
+    print(
+        f"IVs (Prime) : a=0x{ivs_prime[0]:08x}, b=0x{ivs_prime[1]:08x}, c=0x{ivs_prime[2]:08x}, d=0x{ivs_prime[3]:08x}")
 
     with np.errstate(over='ignore', under='ignore'):
         delta_h1_calculated = ivs_prime - ivs_normal
@@ -118,41 +106,43 @@ def main():
     print(f"dd = 0x{delta_h1_calculated[3]:08x}")
     print("-" * 70 + "\n")
 
+
     m1_rand = np.random.randint(0, 4294967295, size=14, dtype=np.uint32)
-    m1 = m1_rand.copy()
+    m1_input = m1_rand.copy()
+
+    # q_dummy 依然保留 14 長度
     q_dummy = np.zeros(14, dtype=np.uint32)
-    block1(m1, q_dummy, ivs_normal, np.uint32(1))
-    q_returned = q_dummy.copy()
 
-    q_normal = np.zeros(14, dtype=np.uint32)
-    normal_block1_step14(m1, q_normal, ivs_normal)
 
-    is_match = np.array_equal(q_returned, q_normal)
-    if not is_match:
-        for i in range(14):
-            if q_returned[i] != q_normal[i]:
-                print(f"Mismatch at step {i}: returned=0x{q_returned[i]:08x}, normal=0x{q_normal[i]:08x}")
+    m1 = block1(m1_input, q_dummy, ivs_normal, np.uint32(1))
 
-    delta_m1 = np.zeros(14, dtype=np.uint32)
+
+    q_normal = np.zeros(20, dtype=np.uint32)
+    normal_block1_step20(m1, q_normal, ivs_normal)
+
+
+    delta_m1 = np.zeros(16, dtype=np.uint32)
     delta_m1[4] = np.uint32(1) << np.uint32(31)  # +2^31
     delta_m1[11] = np.uint32(0xFFFF8000)  # -2^15
+    delta_m1[14] = np.uint32(1) << np.uint32(31)  # +2^31
+
     m1_prime = m1 + delta_m1
 
-    q_prime = np.zeros(14, dtype=np.uint32)
-    normal_block1_step14(m1_prime, q_prime, ivs_prime)
+    q_prime = np.zeros(20, dtype=np.uint32)
+    normal_block1_step20(m1_prime, q_prime, ivs_prime)
 
     print("\n" + "=" * 70)
     print("Message Blocks")
     print("=" * 70)
-    for i in range(14):
+    for i in range(16):
         diff_flag = " <--" if m1[i] != m1_prime[i] else ""
         print(f"m[{i:<2}] | m1: 0x{m1[i]:08x} | m1': 0x{m1_prime[i]:08x}{diff_flag}")
 
     print("\n" + "=" * 70)
     print("differential")
     print("=" * 70)
-    reg_order = (['a', 'd', 'c', 'b'] * 4)[:14]
-    for i in range(14):
+    reg_order = (['a', 'd', 'c', 'b'] * 5)[:20]
+    for i in range(20):
         xor_diff = q_normal[i] ^ q_prime[i]
         with np.errstate(over='ignore', under='ignore'):
             mod_diff = np.uint32(q_prime[i] - q_normal[i])
@@ -162,7 +152,8 @@ def main():
     print_horizontal_bit_matrix(q_normal, "bits of q")
     xor_array = q_normal ^ q_prime
     print_horizontal_bit_matrix(xor_array, "xor differential")
-    print(f'\n Time: {time.time()-st:.2f} sec')
+    print(f'\n Time: {time.time() - st:.2f} sec')
+
 
 if __name__ == "__main__":
     main()
