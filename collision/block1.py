@@ -140,8 +140,13 @@ def block1(m, q, ivs, debug):
         if ~((d5 >> 17) & 1) | ((d5 >> 31) ^ (a5 >> 31)): continue
         
         if ((d5 >> 29) & 1) != ((a5 >> 29) & 1):
-            # change bit 6 in c2
             c2 = c2 ^ np.uint32(32)
             nm6 = right_rotate(c2 - d2, 17) - c1 - phi1(d2, a2, b1) - np.uint32(0xa8304613)
-            # WIP
+            nm7 = right_rotate(b2 - c2, 22) - b1 - phi1(c2, d2, a2) - np.uint32(0xfd469501)
+            nm8 = right_rotate(a3 - b2, 7) - a2 - phi1(b2, c2, d2) - np.uint32(0x698098d8)
+            nm9 = right_rotate(d3 - a3, 12) - d2 - phi1(a3, b2, c2) - np.uint32(0x8b44f7af)
+            nm10 = right_rotate(c3 - d3, 17) - c2 - phi1(d3, a3, b2) - np.uint32(0xffff5bb1)
+        
+        # step 19
+        # WIP
         return m
