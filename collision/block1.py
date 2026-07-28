@@ -41,6 +41,7 @@ MZ13, MO13, MF13, MFN13 = get_mask([8, 24, 31]), get_mask([4, 14, 15, 16, 17, 18
 MZ14, MO14, MF14, MFN14 = get_mask([25, 26, 27, 28, 29, 30]), get_mask([4, 8, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 31]), get_mask([32]), get_mask([])
 MZ15, MO15 = get_mask([4, 16, 17, 26]), get_mask([25, 27, 28, 29, 30, 31])
 MZ16, MO16, MF16 = get_mask([29]), get_mask([4, 16, 17]), get_mask([32])
+MF17 = get_mask([4, 16, 18])
 
 MASKS = np.array([[MZ1, MO1, MF1, MFN1],
         [MZ2, MO2, MF2, MFN2],
@@ -116,5 +117,31 @@ def block1(m, q, ivs, debug):
         b4 = (temp | MO16) & ~MZ16
         nm15 = right_rotate((b4 - c4), np.uint32(22)) - b3 - phi1(c4, d4, a4) - np.uint32(0x49b40821)
         
-        # WIP
-        return q
+        # step 17       
+        sigma17 = a4 + phi2(b4, c4, d4) + nm1 + np.uint32(0xf61e2562)       
+        temp = b4 + (sigma17 << 5)
+        a5 = (temp & ~MF17) | (b4 & MF17)
+        
+        d1 = d1 ^ right_rotate((temp ^ a5), np.uint32(7))
+        nm1 = right_rotate((d1 - a1), np.uint32(12)) - dd - phi1(a1, bb, cc) - np.uint32(0xe8c7b756)
+        
+        sigma17 = a4 + phi2(b4, c4, d4) + nm1 + np.uint32(0xf61e2562)
+        
+        # sigma 25~27 not all one
+        if ((sigma17 >> 24) & np.uint32(7)) == np.uint32(7): continue
+        a5 = b4 + (sigma17 << 5)
+        
+        # a5,32 = b4,32
+        if (a5 >> 31) != (b4 >> 31): continue
+        
+        # step 18
+        d5 = a5 + left_rotate(d4 + phi2(a5, b4, c4) + nm6 + np.uint32(0xc040b340), np.uint32(9))
+        
+        if ~((d5 >> 17) & 1) | ((d5 >> 31) ^ (a5 >> 31)): continue
+        
+        if ((d5 >> 29) & 1) != ((a5 >> 29) & 1):
+            # change bit 6 in c2
+            c2 = c2 ^ np.uint32(32)
+            nm6 = right_rotate(c2 - d2, 17) - c1 - phi1(d2, a2, b1) - np.uint32(0xa8304613)
+            # WIP
+        return m
